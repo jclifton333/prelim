@@ -17,7 +17,7 @@ class PoissonDisease(object):
     Assuming seasonal variation only in endemic component.
     """
 
-    def __init__(self, L, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
+    def __init__(self, L, distance_matrix, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
                  beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=1):
         self.L = L
         self.alpha_nu = alpha_nu
@@ -38,7 +38,7 @@ class PoissonDisease(object):
         self.spatial_weight_matrix = np.zeros((L, L))
         for i in range(L):
             for j in range(i, L):
-                d_ij = np.abs(i - j)
+                d_ij = distance_matrix[i, j]
                 weight_ij = np.exp(-d_ij / kernel_bandwidth)
                 self.spatial_weight_matrix[i, j] = weight_ij
                 self.spatial_weight_matrix[j, i] = weight_ij
