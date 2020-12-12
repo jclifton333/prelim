@@ -13,7 +13,6 @@ def random_minimizer(f, center_param, n_draws=100, scale=0.5):
     for draw in range(n_draws):
         param = best_param + np.random.normal(scale=scale, size=p)
         value = f(param)
-        print(value)
         if value < best_value:
             best_value = value
             best_param = param
@@ -28,6 +27,7 @@ def negative_log_likelihood(param_vec, Y_stacked, X_stacked, penalty=0.1):
     autoregressive_term = np.dot(X_stacked[:, 3:5], transformed_param[3:5])
     spatiotemporal_term = np.dot(X_stacked[:, 5:], transformed_param[5:])
     mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
+    mean_counts_ = np.maximum(mean_counts_, 0.1)
     log_counts = np.log(mean_counts_)
     log_lik = np.dot(Y_stacked, log_counts) - np.sum(mean_counts_)
     nll = -log_lik
@@ -49,10 +49,11 @@ def fit_model(env):
 
 if __name__ == "__main__":
     L = 50
-    T = 20
+    T = 1000
     env = PoissonDisease(L)
     env.reset()
     for _ in range(T):
-        env.step(np.random.binomial(1, 0, L))
+        env.step(np.random.binomial(1, 1, L))
+        print(env.Y.sum())
     param_hat = fit_model(env)
 

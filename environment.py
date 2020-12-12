@@ -18,7 +18,7 @@ class PoissonDisease(object):
     """
 
     def __init__(self, L, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
-                 beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=0.1):
+                 beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=1):
         self.L = L
         self.alpha_nu = alpha_nu
         self.alpha_lambda = alpha_lambda
@@ -45,13 +45,14 @@ class PoissonDisease(object):
                 coord_i = coordinates[i]
                 coord_j = coordinates[j]
                 d_ij = np.abs(coord_i - coord_j).sum()
-                # weight_ij = np.exp(-d_ij / kernel_bandwidth)
-                weight_ij = d_ij < 1
+                weight_ij = np.exp(-d_ij / kernel_bandwidth)
+                # weight_ij = d_ij < 1
                 self.spatial_weight_matrix[i, j] = weight_ij
                 self.spatial_weight_matrix[j, i] = weight_ij
         self.spatial_weight_matrix /= self.spatial_weight_matrix.sum(axis=1)
 
         self.Y = None
+        self.X = None
         self.t = None
         self.X_list = []  # For collecting dependent variables into sequence of design matrices
         self.Y_list = []
@@ -89,14 +90,14 @@ class PoissonDisease(object):
         nu, z = self.get_endemic_effect(self.t)
         mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, spatial_weight_times_interaction = \
             self.mean_counts(self.Y, A, nu)
-        X_t = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction, spatial_weight_times_ytm1,
+        X = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction, spatial_weight_times_ytm1,
                                -spatial_weight_times_interaction))
         Y = np.random.poisson(mean_counts_)
+        self.X = X
         self.Y = Y
         self.t += 1
-        self.X_list.append(X_t)
+        self.X_list.append(X)
         self.Y_list.append(Y)
-        print(mean_counts_.sum())
         return Y
 
 
