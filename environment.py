@@ -11,7 +11,7 @@ class PoissonDisease(object):
     """
     Adapted from estimates in 'Modeling seasonality in space-time infectious disease surveillance',
     pdf pg. 9
-    https://onlinelibrary.wiley.com/doi/pdf/10.1002/bimj.201200037?casa_token=rT0pGljzSzMAAAAA:8R7hmAW4N4box2PqLqlPLEbOKdQPTs4dIZ34McLZQJQPuPf-uEC5rA_C4ljzfUQYVGt6yz7rnKKYKrQ
+    https://drive.google.com/file/d/1P1McRZng8sNoXRlrJK--08Jnv4vsKZcV/view?usp=sharing
 
     In their notation, our beta_. is given by beta_. = [gamma^., delta^.]
     Assuming seasonal variation only in endemic component.
@@ -45,9 +45,11 @@ class PoissonDisease(object):
                 coord_i = coordinates[i]
                 coord_j = coordinates[j]
                 d_ij = np.abs(coord_i - coord_j).sum()
-                weight_ij = np.exp(-d_ij / kernel_bandwidth)
+                # weight_ij = np.exp(-d_ij / kernel_bandwidth)
+                weight_ij = d_ij < 1
                 self.spatial_weight_matrix[i, j] = weight_ij
                 self.spatial_weight_matrix[j, i] = weight_ij
+        self.spatial_weight_matrix /= self.spatial_weight_matrix.sum(axis=1)
 
         self.Y = None
         self.t = None
@@ -87,13 +89,14 @@ class PoissonDisease(object):
         nu, z = self.get_endemic_effect(self.t)
         mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, spatial_weight_times_interaction = \
             self.mean_counts(self.Y, A, nu)
-        X_t = np.column_stack((np.ones(self.L), z, self.Y, action_infection_interaction, spatial_weight_times_ytm1,
-                               spatial_weight_times_interaction))
+        X_t = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction, spatial_weight_times_ytm1,
+                               -spatial_weight_times_interaction))
         Y = np.random.poisson(mean_counts_)
         self.Y = Y
         self.t += 1
         self.X_list.append(X_t)
         self.Y_list.append(Y)
+        print(mean_counts_.sum())
         return Y
 
 
