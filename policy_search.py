@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.special import expit
 from environment import PoissonDisease
+from model_estimation import fit_model
 from functools import partial
 
 
@@ -13,16 +14,16 @@ def priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix)
     return priority_score
 
 
-def action_from_priority_scores(priority_scores, budget):
-    L = len(priority_scores)
+def action_from_priority_scores(priority_scores_, budget):
+    L = len(priority_scores_)
     A = np.zeros(L)
-    priority_locations = np.argsort(priority_scores)[-budget:]
+    priority_locations = np.argsort(priority_scores_)[-budget:]
     A[priority_locations] = 1
     return A
 
 
 def priority_score_policy(policy_parameter, model_parameter, budget, X, spatial_weight_matrix):
-    prioritiy_scores_ = priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix)
+    priority_scores_ = priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix)
     A = action_from_priority_scores(priority_scores_, budget)
     return A
 
@@ -41,17 +42,18 @@ def env_from_model_parameter(model_parameter, L):
 
 
 def rollout(policy_parameter, model_parameter, budget, L, time_horizon, discount_factor=0.96):
-    total_utility = 0.
-    env = env_from_model_parameter(model_parameter, L)
-    env.reset()
+    # ToDo: Rollout should start at current state, not a randomly initialized state
 
-    # Initial action
-    A = np.zeros(env.L)
+    total_utility = 0.
+    rollout_env = rollout_env_from_model_parameter(model_parameter, L)
+    rollout_env.reset()
+
+    A = np.zeros(rollout_env.L) # Initial action
     for t in range(time_horizon):
-        env.step(A)
-        total_utility -= discount_factor**t * env.Y.mean()
-        X = env.X
-        A = priority_score_policy(policy_parameter, model_parameter, budget, X, env.spatial_weight_matrix)
+        rollout_env.step(A)
+        total_utility -= discount_factor**t * rollout_env.Y.mean()
+        X = rollout_env.X
+        A = priority_score_policy(policy_parameter, model_parameter, budget, X, rollout_env.spatial_weight_matrix)
 
     return total_utility
 
@@ -61,4 +63,19 @@ def policy_search(model_parameter, budget, L, time_horizon, discount_factor, pol
                               discount_factor=discount_factor)
     policy_parameter_estimate = policy_optimizer(rollout_partial)
     return policy_parameter_estimate
+
+
+def policy_search_policy(env, budget, time_horizon, discount_factor, policy_optimizer):
+    model_parameter_estimate = fit_model(env)
+    policy_parameter_estimate = policy_search(model_parameter_estimate, budget, env.L, time_horizon, discount_factor,
+                                              policy_optimizer)
+    A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X,
+                              env.spatial_weight_matrix)
+    return A
+
+
+
+
+
+
 
