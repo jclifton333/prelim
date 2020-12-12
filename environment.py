@@ -45,35 +45,44 @@ class PoissonDisease(object):
 
         self.Y = None
         self.t = None
+        self.X_list = []  # For collecting dependent variables into sequence of design matrices
+        self.Y_list = []
 
     def get_endemic_effect(self, t):
         z = np.array([np.sin(self.omega * t), np.cos(self.omega * t)])
         log_nu = self.alpha_nu + np.dot(self.beta_nu, z)
         nu = np.exp(log_nu)
 
-        return nu
+        return nu, z
 
     def reset(self):
         self.Y = np.random.poisson(1, size=self.L)
         self.t = 1
+        self.X_list = []
+        self.Y_list = []
 
     def mean_counts(self, Ytm1, Atm1, nu):
         endemic = nu
         action_infection_interaction = Ytm1 * Atm1
         autoregressive = self.lambda_ * Ytm1
         autoregressive_action = self.lambda_a * action_infection_interaction
-        spatiotemporal = self.phi * np.dot(self.spatial_weight_matrix, Ytm1)
-        spatiotemporal_action = self.phi_a * np.dot(self.spatial_weight_matrix, action_infection_interaction)
+        spatial_weight_times_ytm1 = np.dot(self.spatial_weight_matrix, Ytm1)
+        spatiotemporal = self.phi * spatial_weight_times_ytm1
+        spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
+        spatiotemporal_action = self.phi_a * spatial_weight_times_interaction
         mean_counts_ = endemic + autoregressive - autoregressive_action + spatiotemporal - spatiotemporal_action
         mean_counts_ = np.maximum(mean_counts_, 0)
-        return mean_counts_
+        return mean_counts_, spatial_weight_times_ytm1, spatial_weight_times_interaction
 
     def step(self, A):
-        nu = self.get_endemic_effect(self.t)
-        mean_counts_ = self.mean_counts(self.Y, A, nu)
+        nu, z = self.get_endemic_effect(self.t)
+        mean_counts_, spatial_weight_times_ytm1, spatial_weight_times_interaction = self.mean_counts(self.Y, A, nu)
         Y = np.random.poisson(mean_counts_)
         self.Y = Y
         self.t += 1
+        X_t = np.column_stack((z, spatial_weight_times_ytm1, spatial_weight_times_interaction))
+        self.X_list.append(X_t)
+        self.Y_list.append(Y)
         return Y
 
 
