@@ -9,7 +9,7 @@ def expected_utility_at_param(param, rollout, n_rollout_per_it):
     return expected_utility
 
 
-def random_hill_climb_policy_optimizer(rollout, n_it=100, n_rollout_per_it=100, num_param=7):
+def random_hill_climb_policy_optimizer(rollout, n_it=10, n_rollout_per_it=10, num_param=2):
 
     best_param = np.ones(num_param)
 

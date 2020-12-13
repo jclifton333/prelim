@@ -4,20 +4,24 @@ from environment import PoissonDisease
 from model_estimation import fit_model
 from functools import partial
 from optim import random_hill_climb_policy_optimizer
+import pdb
 
 
 def priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix):
-    alpha_nu = np.log(model_parameter[0])
-    beta_nu = model_parameter[1:3]
+    # ToDo: handling of parameter transformations can probably be improved here and in env_from_param
+
+    alpha_nu = model_parameter[0]
+    beta_nu = np.exp(model_parameter[1:3])
     endemic_param = np.concatenate([[alpha_nu], beta_nu])
-    endemic_term = np.dot(X[:3], endemic_param)
+    endemic_term = np.dot(X[:, 0:3], endemic_param)
     endemic_term = np.exp(endemic_term)
-    autoregressive_term = np.dot(X[3:5], model_parameter[3:5])
-    spatiotemporal_term = np.dot(X[5:], model_parameter[5:])
+
+    autoregressive_term = np.dot(X[:, 3:5], np.exp(model_parameter[3:5]))
+    spatiotemporal_term = np.dot(X[:, 5:], np.exp(model_parameter[5:]))
 
     mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
     mean_counts_backup_ = np.dot(spatial_weight_matrix, mean_counts_)
-    priority_features = np.array([mean_counts_, mean_counts_backup_])
+    priority_features = np.column_stack([mean_counts_, mean_counts_backup_])
     priority_score = expit(np.dot(priority_features, policy_parameter))
     return priority_score
 
@@ -37,19 +41,19 @@ def priority_score_policy(policy_parameter, model_parameter, budget, X, spatial_
 
 
 def env_from_model_parameter(model_parameter, Y_current, t_current, L):
-    alpha_nu = np.log(model_parameter[0])
-    beta_nu = model_parameter[1:2]
-    alpha_lambda = np.log(model_parameter[3])
-    lambda_a = model_parameter[4]
-    alpha_phi = np.log(model_parameter[5])
-    phi_a = model_parameter[6]
+    alpha_nu = model_parameter[0]
+    beta_nu = np.exp(model_parameter[1:3])
+    alpha_lambda = model_parameter[3]
+    lambda_a = np.exp(model_parameter[4])
+    alpha_phi = model_parameter[5]
+    phi_a = np.exp(model_parameter[6])
 
     env = PoissonDisease(L, lambda_a = lambda_a, phi_a = phi_a, alpha_nu = alpha_nu, alpha_lambda = alpha_lambda,
                          alpha_phi = alpha_phi, beta_nu = beta_nu, Y_initial=Y_current, t_initial=t_current)
     return env
 
 
-def rollout(Y_current, t_current, policy_parameter, model_parameter, budget, L, time_horizon, discount_factor=0.96):
+def rollout(policy_parameter, Y_current, t_current, model_parameter, budget, L, time_horizon, discount_factor=0.96):
     total_utility = 0.
     rollout_env = env_from_model_parameter(model_parameter, Y_current, t_current, L)
     rollout_env.reset()
@@ -98,5 +102,5 @@ if __name__ == "__main__":
         total_reward += env.Y.mean()
         A = policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
         env.step(A)
-    print(total_reward)
+        print(t, total_reward)
 
