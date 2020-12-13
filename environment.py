@@ -18,7 +18,7 @@ class PoissonDisease(object):
     """
 
     def __init__(self, L, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
-                 beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=1):
+                 beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=1, Y_initial=None, t_initial=None):
         self.L = L
         self.alpha_nu = alpha_nu
         self.alpha_lambda = alpha_lambda
@@ -51,6 +51,9 @@ class PoissonDisease(object):
                 self.spatial_weight_matrix[j, i] = weight_ij
         self.spatial_weight_matrix /= self.spatial_weight_matrix.sum(axis=1)
 
+        self.Y_initial = Y_initial
+        self.t_initial = t_initial
+
         self.Y = None
         self.X = None
         self.t = None
@@ -67,8 +70,16 @@ class PoissonDisease(object):
     def reset(self):
         # ToDo: option to reset coordinates?
 
-        self.Y = np.random.poisson(1, size=self.L)
-        self.t = 1
+        if self.Y_initial is None:
+            self.Y = np.random.poisson(1, size=self.L)
+        else:
+            self.Y = self.Y_initial
+
+        if self.t_initial is None:
+            self.t = 1
+        else:
+            self.t = self.t_initial
+
         self.X_list = []
         self.Y_list = []
 
