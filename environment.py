@@ -5,6 +5,7 @@ Using models cited in
 """
 import pdb
 import numpy as np
+import copy
 
 
 class PoissonDisease(object):
@@ -108,6 +109,15 @@ class PoissonDisease(object):
         mean_counts_ = np.maximum(mean_counts_, 0)
         return mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, \
                spatial_weight_times_interaction, confounder
+
+    def get_X_at_A(self, X, A):
+        Y = X[:, 3]
+        action_infection_interaction = Y * A
+        spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
+        X_new = copy.copy(X)
+        X_new[:, 4] = -action_infection_interaction
+        X_new[:, 6] = -spatial_weight_times_interaction
+        return X_new
 
     def step(self, A):
 

@@ -26,3 +26,7 @@ def random_hill_climb_policy_optimizer(rollout, n_it=10, n_rollout_per_it=10, nu
 
     return best_param
 
+
+def random_q_optimizer(q, L, budget, n_it=100):
+    pass
+
