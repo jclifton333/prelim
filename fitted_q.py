@@ -24,7 +24,7 @@ def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optim
 
 
 def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
-                             regressor=Ridge):
+                             regressor=Ridge, backup_regressor=RandomForestRegressor):
     X = np.vstack(env.X_list)
     Y = np.hstack(env.Y_list)
 
@@ -50,7 +50,7 @@ def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optim
     X1 = X[env.L:, :]
     rhat = model0.predict(X1)
     backup = rhat + discount_factor*v1
-    model1 = regressor()
+    model1 = backup_regressor()
     model1.fit(X1, backup)
 
     # Minimize q1 estimate

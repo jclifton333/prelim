@@ -2,10 +2,32 @@ import argparse
 import numpy as np
 from environment import PoissonDisease
 from policy_factory import policy_factory
+import multiprocessing as mp
+from functools import partial
 
 DISCOUNT_FACTOR = 0.96
 BURN_IN = 5
 BURN_IN_POLICY = policy_factory('random')
+
+def run_replicate(replicate_index, env, budget, time_horizon, policy):
+    np.random.seed(replicate_index)
+
+    total_utility = 0.
+    for replicate in range(num_replicates):
+        env.reset()
+
+        # Burn in
+        for t in range(BURN_IN):
+            A = BURN_IN_POLICY(env, budget, time_horizon-t, discount_factor)
+            env.step(A)
+
+        # Deploy policy
+        for t in range(time_horizon):
+            total_utility += discount_factor**t * env.Y.mean()
+            A = policy(env, budget, time_horizon-t, discount_factor)
+            env.step(A)
+    return total_utility
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -25,20 +47,9 @@ if __name__ == "__main__":
     num_replicates = args.num_replicates
 
     env = PoissonDisease(L=L)
-    replicate_total_utilities = np.zeros(num_replicates)
 
-    for replicate in range(num_replicates):
-        env.reset()
-
-        # Burn in
-        for t in range(BURN_IN):
-            A = BURN_IN_POLICY(env, budget, time_horizon-t, discount_factor)
-            env.step(A)
-
-        # Deploy policy
-        for t in range(time_horizon):
-            replicate_total_utilities[replicate] += discount_factor**t * env.Y.mean()
-            A = policy(env, budget, time_horizon-t, discount_factor)
-            env.step(A)
-    expected_total_utility = replicate_total_utilities.mean()
+    pool = mp.Pool(processes=num_replicates)
+    run_replicate_partial = partial(env=env, budget=budget, time_horizon=time_horizon, policy=policy)
+    total_utilities = pool.map(run_replicate_partial, range(num_replicates))
+    expected_total_utility = np.mean(total_utilities)
     print(f'policy name: {policy_name} expected value {expected_total_utility}')
