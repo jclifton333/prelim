@@ -4,6 +4,7 @@ from environment import PoissonDisease
 from model_estimation import fit_model
 from functools import partial
 from optim import random_hill_climb_policy_optimizer
+from numba import njit
 import pdb
 
 
