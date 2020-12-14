@@ -13,19 +13,18 @@ def run_replicate(replicate_index, env, budget, time_horizon, policy):
     np.random.seed(replicate_index)
 
     total_utility = 0.
-    for replicate in range(num_replicates):
-        env.reset()
+    env.reset()
 
-        # Burn in
-        for t in range(BURN_IN):
-            A = BURN_IN_POLICY(env, budget, time_horizon-t, discount_factor)
-            env.step(A)
+    # Burn in
+    for t in range(BURN_IN):
+        A = BURN_IN_POLICY(env, budget, time_horizon-t, discount_factor)
+        env.step(A)
 
-        # Deploy policy
-        for t in range(time_horizon):
-            total_utility += discount_factor**t * env.Y.mean()
-            A = policy(env, budget, time_horizon-t, discount_factor)
-            env.step(A)
+    # Deploy policy
+    for t in range(time_horizon):
+        total_utility += discount_factor**t * env.Y.mean()
+        A = policy(env, budget, time_horizon-t, discount_factor)
+        env.step(A)
     return total_utility
 
 
