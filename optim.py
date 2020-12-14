@@ -28,5 +28,16 @@ def random_hill_climb_policy_optimizer(rollout, n_it=10, n_rollout_per_it=10, nu
 
 
 def random_q_optimizer(q, L, budget, n_it=100):
-    pass
+    A = np.zeros(L)
+    A[:budget] = 1
+    q_best = float('inf')
+    A_best = None
+    for it in range(n_it):
+        np.random.shuffle(A)
+        q_it = q(A)
+        if q_it < q_best:
+            q_best = q_it
+            A_best = A
+    return A_best
+
 

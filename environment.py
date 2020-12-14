@@ -102,7 +102,7 @@ class PoissonDisease(object):
         spatiotemporal = self.phi * spatial_weight_times_ytm1
         spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
         spatiotemporal_action = self.phi_a * spatial_weight_times_interaction
-        log_confounder = np.random.multivariate_normal(mean=np.zeros(env.L), cov=self.log_confounder_covariance)
+        log_confounder = np.random.multivariate_normal(mean=np.zeros(self.L), cov=self.log_confounder_covariance)
         confounder = np.exp(log_confounder)
         mean_counts_ = endemic + autoregressive - autoregressive_action + spatiotemporal - spatiotemporal_action + \
             self.lambda_confounder * confounder

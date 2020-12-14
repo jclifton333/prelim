@@ -1,5 +1,6 @@
 from policy_search import policy_search_policy
 import baseline_policies
+import fitted_q
 
 
 def policy_factory(policy_name):
@@ -13,3 +14,5 @@ def policy_factory(policy_name):
         return baseline_policies.treat_none_policy
     elif policy_name == 'greedy_model_based':
         return baseline_policies.greedy_model_based_policy
+    elif policy_name == 'myopic_model_free':
+        return fitted_q.myopic_model_free_policy
