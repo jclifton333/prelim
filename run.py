@@ -49,7 +49,7 @@ if __name__ == "__main__":
     env = PoissonDisease(L=L)
 
     pool = mp.Pool(processes=num_replicates)
-    run_replicate_partial = partial(env=env, budget=budget, time_horizon=time_horizon, policy=policy)
+    run_replicate_partial = partial(run_replicate, env=env, budget=budget, time_horizon=time_horizon, policy=policy)
     total_utilities = pool.map(run_replicate_partial, range(num_replicates))
     expected_total_utility = np.mean(total_utilities)
     print(f'policy name: {policy_name} expected value {expected_total_utility}')
