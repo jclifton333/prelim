@@ -8,6 +8,14 @@ import pdb
 
 
 def priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix):
+    mean_counts_ = mean_counts_from_model_parameter(model_parameter, X)
+    mean_counts_backup_ = np.dot(spatial_weight_matrix, mean_counts_)
+    priority_features = np.column_stack([mean_counts_, mean_counts_backup_])
+    priority_score = expit(np.dot(priority_features, policy_parameter))
+    return priority_score
+
+
+def mean_counts_from_model_parameter(model_parameter, X):
     # ToDo: handling of parameter transformations can probably be improved here and in env_from_param
 
     alpha_nu = model_parameter[0]
@@ -20,10 +28,7 @@ def priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix)
     spatiotemporal_term = np.dot(X[:, 5:], np.exp(model_parameter[5:]))
 
     mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
-    mean_counts_backup_ = np.dot(spatial_weight_matrix, mean_counts_)
-    priority_features = np.column_stack([mean_counts_, mean_counts_backup_])
-    priority_score = expit(np.dot(priority_features, policy_parameter))
-    return priority_score
+    return mean_counts_
 
 
 def action_from_priority_scores(priority_scores_, budget):
@@ -76,7 +81,8 @@ def policy_search(Y_current, t_current, model_parameter, budget, L, time_horizon
     return policy_parameter_estimate
 
 
-def policy_search_policy(env, budget, time_horizon, discount_factor, policy_optimizer):
+def policy_search_policy(env, budget, time_horizon, discount_factor,
+                         policy_optimizer=random_hill_climb_policy_optimizer):
     model_parameter_estimate = fit_model(env)
     policy_parameter_estimate = policy_search(env.Y, env.t, model_parameter_estimate, budget, env.L, time_horizon,
                                               discount_factor, policy_optimizer)
@@ -99,7 +105,7 @@ if __name__ == "__main__":
     env.step(A)
     total_reward = 0.
     for t in range(time_horizon):
-        total_reward += env.Y.mean()
+        total_reward += discount_factor**t * env.Y.mean()
         A = policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
         env.step(A)
         print(t, total_reward)

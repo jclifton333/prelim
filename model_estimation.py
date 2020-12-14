@@ -22,7 +22,7 @@ def random_minimizer(f, center_param, n_draws=100, scale=0.5):
 def negative_log_likelihood(param_vec, Y_stacked, X_stacked, penalty=0.1):
     transformed_param = copy.copy(param_vec)
     transformed_param[2:] = np.exp(transformed_param[2:])
-    # l2 = np.mean(transformed_param ** 2)
+    l2 = np.mean(transformed_param ** 2)
     endemic_term = np.exp(np.dot(X_stacked[:, :2], transformed_param[:2]))
     autoregressive_term = np.dot(X_stacked[:, 3:5], transformed_param[3:5])
     spatiotemporal_term = np.dot(X_stacked[:, 5:], transformed_param[5:])
@@ -30,7 +30,7 @@ def negative_log_likelihood(param_vec, Y_stacked, X_stacked, penalty=0.1):
     mean_counts_ = np.maximum(mean_counts_, 0.1)
     log_counts = np.log(mean_counts_)
     log_lik = np.dot(Y_stacked, log_counts) - np.sum(mean_counts_)
-    nll = -log_lik
+    nll = -log_lik + penalty * l2
     # nll = np.mean(np.abs(mean_counts_ - Y_stacked)) + penalty * l2
     return nll
 
