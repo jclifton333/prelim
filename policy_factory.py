@@ -16,3 +16,5 @@ def policy_factory(policy_name):
         return baseline_policies.greedy_model_based_policy
     elif policy_name == 'myopic_model_free':
         return fitted_q.myopic_model_free_policy
+    elif policy_name == 'one_step_fitted_q':
+        return fitted_q.one_step_fitted_q_policy

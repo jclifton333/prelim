@@ -1,4 +1,6 @@
 import numpy as np
+from copy import copy
+import pdb
 
 
 def expected_utility_at_param(param, rollout, n_rollout_per_it):
@@ -37,7 +39,7 @@ def random_q_optimizer(q, L, budget, n_it=100):
         q_it = q(A)
         if q_it < q_best:
             q_best = q_it
-            A_best = A
-    return A_best
+            A_best = copy(A)
+    return A_best, q_best
 
 
