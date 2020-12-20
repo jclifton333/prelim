@@ -26,9 +26,10 @@ def mean_counts_from_model_parameter(model_parameter, X):
     endemic_term = np.exp(endemic_term)
 
     autoregressive_term = np.dot(X[:, 3:5], np.exp(model_parameter[3:5]))
-    spatiotemporal_term = np.dot(X[:, 5:], np.exp(model_parameter[5:]))
+    spatiotemporal_term = np.dot(X[:, 5:7], np.exp(model_parameter[5:7]))
+    confounder_term = X[:, 7] * model_parameter[7]
 
-    mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
+    mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term + confounder_term
     return mean_counts_
 
 
@@ -53,15 +54,18 @@ def env_from_model_parameter(model_parameter, Y_current, t_current, L):
     lambda_a = np.exp(model_parameter[4])
     alpha_phi = model_parameter[5]
     phi_a = np.exp(model_parameter[6])
+    alpha_confounder = model_parameter[7]
 
     env = PoissonDisease(L, lambda_a = lambda_a, phi_a = phi_a, alpha_nu = alpha_nu, alpha_lambda = alpha_lambda,
-                         alpha_phi = alpha_phi, beta_nu = beta_nu, Y_initial=Y_current, t_initial=t_current)
+                         alpha_phi = alpha_phi, beta_nu = beta_nu, alpha_confounder=alpha_confounder,
+                         Y_initial=Y_current, t_initial=t_current)
     return env
 
 
-def rollout(policy_parameter, Y_current, t_current, model_parameter, budget, L, time_horizon, discount_factor=0.96):
+def rollout(policy_parameter, env, budget, time_horizon, discount_factor=0.96):
     total_utility = 0.
-    rollout_env = env_from_model_parameter(model_parameter, Y_current, t_current, L)
+    model_parameter = fit_model(env, perturb=True)
+    rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L)
     rollout_env.reset()
 
     A = np.zeros(rollout_env.L) # Initial action
@@ -74,19 +78,16 @@ def rollout(policy_parameter, Y_current, t_current, model_parameter, budget, L, 
     return total_utility
 
 
-def policy_search(Y_current, t_current, model_parameter, budget, L, time_horizon, discount_factor, policy_optimizer):
-    rollout_partial = partial(rollout, Y_current=Y_current, t_current=t_current,
-                              model_parameter=model_parameter, budget=budget, L=L, time_horizon=time_horizon,
-                              discount_factor=discount_factor)
+def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer):
+    rollout_partial = partial(rollout, env=env, budget=budget, time_horizon=time_horizon, discount_factor=discount_factor)
     policy_parameter_estimate = policy_optimizer(rollout_partial)
     return policy_parameter_estimate
 
 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
                          policy_optimizer=random_hill_climb_policy_optimizer):
-    model_parameter_estimate = fit_model(env)
-    policy_parameter_estimate = policy_search(env.Y, env.t, model_parameter_estimate, budget, env.L, time_horizon,
-                                              discount_factor, policy_optimizer)
+    model_parameter_estimate = fit_model(env, perturb=False)
+    policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer)
     A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X,
                               env.spatial_weight_matrix)
     return A

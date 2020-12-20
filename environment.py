@@ -19,7 +19,7 @@ class PoissonDisease(object):
     """
 
     def __init__(self, L, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
-                 beta_nu=np.array([1.91, 2.69]), alpha_confounder=0.7, kernel_bandwidth=1, Y_initial=None,
+                 beta_nu=np.array([1.91, 2.69]), alpha_confounder=2., kernel_bandwidth=1, Y_initial=None,
                  t_initial=None, covariance_kernel_bandwidth=1.):
         self.L = L
         self.alpha_nu = alpha_nu
@@ -103,12 +103,13 @@ class PoissonDisease(object):
         spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
         spatiotemporal_action = self.phi_a * spatial_weight_times_interaction
         log_confounder = np.random.multivariate_normal(mean=np.zeros(self.L), cov=self.log_confounder_covariance)
-        confounder = np.exp(log_confounder)
+        raw_confounder = np.exp(log_confounder)
+        confounder = np.dot(self.spatial_weight_matrix, raw_confounder)
         mean_counts_ = endemic + autoregressive - autoregressive_action + spatiotemporal - spatiotemporal_action + \
             self.lambda_confounder * confounder
         mean_counts_ = np.maximum(mean_counts_, 0)
         return mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, \
-               spatial_weight_times_interaction, confounder
+               spatial_weight_times_interaction, raw_confounder, confounder
 
     def get_X_at_A(self, X, A):
         Y = X[:, 3]
@@ -123,9 +124,9 @@ class PoissonDisease(object):
 
         nu, z = self.get_endemic_effect(self.t)
         mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, \
-            spatial_weight_times_interaction, confounder = self.mean_counts(self.Y, A, nu)
+            spatial_weight_times_interaction, raw_confounder, confounder = self.mean_counts(self.Y, A, nu)
         X = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction, spatial_weight_times_ytm1,
-                             -spatial_weight_times_interaction, confounder))
+                             -spatial_weight_times_interaction, confounder, raw_confounder))
         Y = np.random.poisson(mean_counts_)
         self.X = X
         self.Y = Y
