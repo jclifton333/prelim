@@ -27,9 +27,8 @@ def mean_counts_from_model_parameter(model_parameter, X):
 
     autoregressive_term = np.dot(X[:, 3:5], np.exp(model_parameter[3:5]))
     spatiotemporal_term = np.dot(X[:, 5:7], np.exp(model_parameter[5:7]))
-    confounder_term = X[:, 7] * model_parameter[7]
 
-    mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term + confounder_term
+    mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
     return mean_counts_
 
 
