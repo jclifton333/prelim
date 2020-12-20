@@ -18,3 +18,5 @@ def policy_factory(policy_name):
         return fitted_q.myopic_model_free_policy
     elif policy_name == 'one_step_fitted_q':
         return fitted_q.one_step_fitted_q_policy
+    elif policy_name == 'one_step_fitted_q_propensity':
+        return fitted_q.one_step_fitted_q_propensity_policy

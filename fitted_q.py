@@ -38,7 +38,59 @@ def epsilon_greedy_propensity_score_from_A(A, spatial_weight_matrix, epsilon, pr
 
 
 def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
-                             regressor=Ridge, backup_regressor=RandomForestRegressor, epsilon=0.1):
+                            regressor=Ridge, backup_regressor=RandomForestRegressor, epsilon=0.1):
+    X = np.vstack(env.X_list)
+    Y = np.hstack(env.Y_list)
+
+    # Fit zero-step q
+    model0 = regressor()
+    model0.fit(X, Y)
+
+    def q0(A_, X_):
+        X_at_A = env.get_X_at_A(X_, A_)
+        q_ = model0.predict(X_at_A).sum()
+        return q_
+
+    # Get backed-up q values
+    v1 = np.zeros(0)
+    for X_ in env.X_list[1:]:
+        q_at_X = partial(q0, X_=X_)
+        A_best, _ = q_optimizer(q_at_X, env.L, budget)
+        X_at_A_best = env.get_X_at_A(X_, A_best)
+        v = model0.predict(X_at_A_best)
+        v1 = np.hstack((v1, v))
+
+    # Estimate q1
+    X0 = X[:-env.L, :]
+    X1 = X[env.L:, :]
+    rhat = model0.predict(X1)
+    backup = rhat + discount_factor * v1
+    model1 = backup_regressor()
+    model1.fit(X0, backup)
+
+    # Minimize q1 estimate
+    X_current = env.X
+
+    def q1(A_):
+        X_at_A = env.get_X_at_A(X_current, A_)
+        q_ = model1.predict(X_at_A).sum()
+        return q_
+
+    A_opt, _ = q_optimizer(q1, env.L, budget)
+
+    # epsilon-greedy exploration
+    if np.random.uniform() < epsilon:
+        A = np.zeros(env.L)
+        A[:budget] = 1
+        np.random.shuffle(A)
+    else:
+        A = A_opt
+
+    return {'A': A}
+
+
+def one_step_fitted_q_propensity_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
+                                        regressor=Ridge, backup_regressor=RandomForestRegressor, epsilon=0.1):
     X = np.vstack(env.X_list)
     Y = np.hstack(env.Y_list)
 
