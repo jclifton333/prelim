@@ -6,10 +6,10 @@ import multiprocessing as mp
 from functools import partial
 
 DISCOUNT_FACTOR = 0.96
-BURN_IN = 10
+BURN_IN = 5
 BURN_IN_POLICY = policy_factory('random')
 
-def run_replicate(replicate_index, env, budget, time_horizon, policy):
+def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_factor):
     np.random.seed(replicate_index)
 
     total_utility = 0.
@@ -17,15 +17,15 @@ def run_replicate(replicate_index, env, budget, time_horizon, policy):
 
     # Burn in
     for t in range(BURN_IN):
-        A = BURN_IN_POLICY(env, budget, time_horizon-t, discount_factor)
-        env.step(A)
+        action_info = BURN_IN_POLICY(env, budget, time_horizon-t, discount_factor)
+        env.step(action_info['A'], propensities=action_info['propensities'])
 
     # Deploy policy
     for t in range(time_horizon):
         total_utility += discount_factor**t * env.Y.mean()
         action_info = policy(env, budget, time_horizon-t, discount_factor)
         if 'propensities' in action_info.keys():
-            propensities = action_info
+            propensities = action_info['propensities']
         else:
             propensities = None
         env.step(action_info['A'], propensities=propensities)
@@ -50,9 +50,13 @@ if __name__ == "__main__":
     num_replicates = args.num_replicates
 
     env = PoissonDisease(L=L)
+    run_replicate_partial = partial(run_replicate, env=env, budget=budget, time_horizon=time_horizon, policy=policy,
+                                    discount_factor=DISCOUNT_FACTOR)
 
-    pool = mp.Pool(processes=num_replicates)
-    run_replicate_partial = partial(run_replicate, env=env, budget=budget, time_horizon=time_horizon, policy=policy)
-    total_utilities = pool.map(run_replicate_partial, range(num_replicates))
-    expected_total_utility = np.mean(total_utilities)
+    if num_replicates > 1:
+        pool = mp.Pool(processes=num_replicates)
+        total_utilities = pool.map(run_replicate_partial, range(num_replicates))
+        expected_total_utility = np.mean(total_utilities)
+    else:
+        expected_total_utility = run_replicate_partial(1)
     print(f'policy name: {policy_name} expected value {expected_total_utility}')

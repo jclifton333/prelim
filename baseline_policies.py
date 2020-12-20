@@ -7,17 +7,19 @@ def random_policy(env, budget, time_horizon, discount_factor):
     A = np.zeros(env.L)
     A[:budget] = 1
     np.random.shuffle(A)
-    return A
+    random_action_prob = budget / env.L
+    propensities = random_action_prob * A + (1 - random_action_prob) * (1 - A)
+    return {'A': A, 'propensities': propensities}
 
 
 def treat_all_policy(env, budget, time_horizon, discount_factor):
     A = np.ones(env.L)
-    return A
+    return {'A': A}
 
 
 def treat_none_policy(env, budget, time_horizon, discount_factor):
     A = np.zeros(env.L)
-    return A
+    return {'A': A}
 
 
 def greedy_model_based_policy(env, budget, time_horizon, discount_factor):
@@ -26,5 +28,5 @@ def greedy_model_based_policy(env, budget, time_horizon, discount_factor):
     A = np.zeros(env.L)
     highest_mean_counts = np.argsort(mean_counts_)[-budget:]
     A[highest_mean_counts] = 1
-    return A
+    return {'A': A}
 
