@@ -26,8 +26,7 @@ def negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penal
     endemic_term = np.exp(np.dot(X_stacked[:, :2], transformed_param[:2]))
     autoregressive_term = np.dot(X_stacked[:, 3:5], transformed_param[3:5])
     spatiotemporal_term = np.dot(X_stacked[:, 5:7], transformed_param[5:7])
-    confounder_term = X_stacked[:, 7] * transformed_param[7]
-    mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term + confounder_term
+    mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
     mean_counts_ = np.maximum(mean_counts_, 0.1)
     log_counts = np.log(mean_counts_)
     if weights is not None:
@@ -43,7 +42,7 @@ def negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penal
 
 def fit_model(env, perturb=True):
     initial_param = np.concatenate(([env.alpha_nu], np.log(env.beta_nu), [env.alpha_lambda], [np.log(env.lambda_a)],
-                                    [env.alpha_phi], [np.log(env.phi_a)], [env.alpha_confounder]))
+                                    [env.alpha_phi], [np.log(env.phi_a)]))
     Y_stacked = np.hstack(env.Y_list)
     X_stacked = np.vstack(env.X_list)
     if perturb:

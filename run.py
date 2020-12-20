@@ -6,7 +6,7 @@ import multiprocessing as mp
 from functools import partial
 
 DISCOUNT_FACTOR = 0.96
-BURN_IN = 5
+BURN_IN = 10
 BURN_IN_POLICY = policy_factory('random')
 
 def run_replicate(replicate_index, env, budget, time_horizon, policy):
@@ -23,8 +23,12 @@ def run_replicate(replicate_index, env, budget, time_horizon, policy):
     # Deploy policy
     for t in range(time_horizon):
         total_utility += discount_factor**t * env.Y.mean()
-        A = policy(env, budget, time_horizon-t, discount_factor)
-        env.step(A)
+        action_info = policy(env, budget, time_horizon-t, discount_factor)
+        if 'propensities' in action_info.keys():
+            propensities = action_info
+        else:
+            propensities = None
+        env.step(action_info['A'], propensities=propensities)
     return total_utility
 
 

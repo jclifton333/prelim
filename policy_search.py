@@ -90,7 +90,7 @@ def policy_search_policy(env, budget, time_horizon, discount_factor,
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer)
     A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X,
                               env.spatial_weight_matrix)
-    return A
+    return {'A': A}
 
 
 if __name__ == "__main__":

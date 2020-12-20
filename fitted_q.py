@@ -2,6 +2,7 @@ import numpy as np
 from functools import partial
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge
+from scipy.stats import norm
 import optim
 
 
@@ -20,11 +21,11 @@ def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optim
        return q_
 
     A, q_best = q_optimizer(q, env.L, budget)
-    return A
+    return {'A': A}
 
 
 def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
-                             regressor=Ridge, backup_regressor=RandomForestRegressor):
+                             regressor=Ridge, backup_regressor=RandomForestRegressor, epsilon=0.1)
     X = np.vstack(env.X_list)
     Y = np.hstack(env.Y_list)
 
@@ -47,11 +48,14 @@ def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optim
         v1 = np.hstack((v1, v))
 
     # Estimate q1
+    X0 = X[:-env.L, :]
+    P = np.hstack(env.propensities_list[:-1])
+    X0 = np.column_stack((X0, P))
     X1 = X[env.L:, :]
     rhat = model0.predict(X1)
     backup = rhat + discount_factor*v1
     model1 = backup_regressor()
-    model1.fit(X1, backup)
+    model1.fit(X0, backup)
 
     # Minimize q1 estimate
     X_current = env.X
@@ -61,8 +65,32 @@ def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optim
         q_ = model1.predict(X_at_A).sum()
         return q_
 
-    A, _ = q_optimizer(q1, env.L, budget)
-    return A
+    A_opt, _ = q_optimizer(q1, env.L, budget)
+
+    prob_random_action = budget / env.L
+    spillover_propensity_means = env.spatial_weight_matrix.sum(axis=1) * prob_random_action
+    spillover_propensity_variances = (env.spatial_weight_matrix**2).sum(axis=1) * prob_random_action * \
+                                     (1 - prob_random_action)
+
+    # epsilon-greedy exploration
+    if np.random.uniform() < epsilon:
+        A = np.zeros(env.L)
+        A[:budget] = 1
+        np.random.shuffle(A)
+    else:
+        A = A_opt
+
+    # ToDo: double check propensity calculations
+    A_spillover = np.dot(env.spatial_weight_matrix, A)
+    A_spillover_propensities = np.array([norm.pdf(a, loc=m, scale=s)
+                                         for a, m, s in zip(A_spillover,
+                                                            spillover_propensity_means,
+                                                            spillover_propensity_variances)]) * epsilon
+    A_propensities = epsilon * (A * prob_random_action + (1 - A) * (1 - prob_random_action)) + \
+                     (1 - epsilon) * A_opt
+    propensities = np.multiply(A_propensities, A_spillover_propensities)
+
+    return {'A': A, 'propensities': propensities}
 
 
 
