@@ -25,7 +25,6 @@ def random_hill_climb_policy_optimizer(rollout, n_it=20, n_rollout_per_it=10, nu
         if utility > best_utility:
             best_utility = utility
             best_param = param
-            print(f'it: {it} best utility: {best_utility} best param: {best_param}')
 
     return best_param
 

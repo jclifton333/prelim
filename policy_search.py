@@ -53,11 +53,9 @@ def env_from_model_parameter(model_parameter, Y_current, t_current, L):
     lambda_a = np.exp(model_parameter[4])
     alpha_phi = model_parameter[5]
     phi_a = np.exp(model_parameter[6])
-    alpha_confounder = model_parameter[7]
 
     env = PoissonDisease(L, lambda_a = lambda_a, phi_a = phi_a, alpha_nu = alpha_nu, alpha_lambda = alpha_lambda,
-                         alpha_phi = alpha_phi, beta_nu = beta_nu, alpha_confounder=alpha_confounder,
-                         Y_initial=Y_current, t_initial=t_current)
+                         alpha_phi = alpha_phi, beta_nu = beta_nu, Y_initial=Y_current, t_initial=t_current)
     return env
 
 
@@ -78,6 +76,7 @@ def rollout(policy_parameter, env, budget, time_horizon, discount_factor=0.96):
 
 
 def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer):
+    # ToDo: can be optimized by first getting list of bootstrap replicates, rather than re-doing for every candidate policy
     rollout_partial = partial(rollout, env=env, budget=budget, time_horizon=time_horizon, discount_factor=discount_factor)
     policy_parameter_estimate = policy_optimizer(rollout_partial)
     return policy_parameter_estimate
