@@ -3,6 +3,7 @@ from scipy.special import expit
 from environment import PoissonDisease
 from model_estimation import fit_model
 from functools import partial
+import copy
 import optim
 from numba import njit
 import pdb
@@ -47,6 +48,17 @@ def priority_score_policy(policy_parameter, model_parameter, budget, X, spatial_
     return A
 
 
+def model_parameter_from_env(env):
+    model_parameter = np.zeros(7)
+    model_parameter[0] = env.alpha_nu
+    model_parameter[1:3] = np.log(env.beta_nu)
+    model_parameter[3] = env.alpha_lambda
+    model_parameter[4] = np.log(env.lambda_a)
+    model_parameter[5] = env.alpha_phi
+    model_parameter[6] = np.log(env.phi_a)
+    return model_parameter
+
+
 def env_from_model_parameter(model_parameter, Y_current, t_current, L):
     alpha_nu = model_parameter[0]
     beta_nu = np.exp(model_parameter[1:3])
@@ -60,10 +72,13 @@ def env_from_model_parameter(model_parameter, Y_current, t_current, L):
     return env
 
 
-def rollout(policy_parameter, env, budget, time_horizon, discount_factor=0.96):
+def rollout(policy_parameter, env, budget, time_horizon, model_parameter=None, discount_factor=0.96, oracle=False):
     total_utility = 0.
-    model_parameter = fit_model(env, perturb=True)
-    rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L)
+    if oracle:
+        rollout_env = copy.deepcopy(env)
+    else:
+        model_parameter = fit_model(env, perturb=True)
+        rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L)
     rollout_env.reset()
 
     A = np.zeros(rollout_env.L)  # Initial action
@@ -76,9 +91,11 @@ def rollout(policy_parameter, env, budget, time_horizon, discount_factor=0.96):
     return total_utility
 
 
-def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer):
+def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, oracle=False,
+                  model_parameter=None):
     # ToDo: can be optimized by first getting list of bootstrap replicates, rather than re-doing for every candidate policy
-    rollout_partial = partial(rollout, env=env, budget=budget, time_horizon=time_horizon, discount_factor=discount_factor)
+    rollout_partial = partial(rollout, env=env, budget=budget, time_horizon=time_horizon,
+                              discount_factor=discount_factor, oracle=oracle, model_parameter=model_parameter)
     policy_parameter_estimate = policy_optimizer(rollout_partial)
     return policy_parameter_estimate
 
@@ -88,6 +105,16 @@ def policy_search_policy(env, budget, time_horizon, discount_factor,
     model_parameter_estimate = fit_model(env, perturb=False)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer)
     A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X,
+                              env.spatial_weight_matrix)
+    return {'A': A}
+
+
+def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
+                                policy_optimizer=optim.genetic_policy_optimizer):
+    model_parameter = model_parameter_from_env(env)
+    policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
+                                              oracle=True, model_parameter=model_parameter)
+    A = priority_score_policy(policy_parameter_estimate, model_parameter, budget, env.X,
                               env.spatial_weight_matrix)
     return {'A': A}
 
@@ -109,7 +136,7 @@ if __name__ == "__main__":
     total_reward = 0.
     for t in range(time_horizon):
         total_reward += discount_factor**t * env.Y.mean()
-        action_info = policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
+        action_info = oracle_policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
         env.step(action_info['A'])
         print(t, total_reward)
 

@@ -1,11 +1,11 @@
-from policy_search import policy_search_policy
+import policy_search
 import baseline_policies
 import fitted_q
 
 
 def policy_factory(policy_name):
     if policy_name == 'policy_search':
-        return policy_search_policy
+        return policy_search.policy_search_policy
     elif policy_name == 'random':
         return baseline_policies.random_policy
     elif policy_name == 'treat_all':
@@ -20,3 +20,5 @@ def policy_factory(policy_name):
         return fitted_q.one_step_fitted_q_policy
     elif policy_name == 'one_step_fitted_q_propensity':
         return fitted_q.one_step_fitted_q_propensity_policy
+    elif policy_name == 'oracle_policy_search':
+        return policy_search.oracle_policy_search_policy
