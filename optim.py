@@ -29,17 +29,21 @@ def random_hill_climb_policy_optimizer(rollout, n_it=20, n_rollout_per_it=10, nu
     return best_param
 
 
-def genetic_policy_optimizer(rollout, n_it=20, n_rollout_per_it=10, num_param=3, n_survive=5,
+def genetic_policy_optimizer(rollout, n_rollout_per_it=10, num_param=3, n_survive=5,
                              n_per_gen=10, n_gen=2):
 
     params = np.random.lognormal(size=(n_per_gen, num_param))
     for gen in range(n_gen):
-        scores = np.ones(num_param)
+        scores = np.ones(n_per_gen)
         for ix, p in enumerate(params):
             scores[ix] = expected_utility_at_param(p, rollout, n_rollout_per_it=n_rollout_per_it)
-
-    # ToDo: WIP
-
+        params_to_keep = params[np.argsort(scores)[-n_survive:]]
+        if gen < n_gen - 1:
+            offspring_param_means = np.log(params_to_keep) - 1 / 2
+            new_param_means = np.ones((n_per_gen - n_survive, num_param)) * -1 / 2
+            param_means = np.vstack((offspring_param_means, new_param_means))
+            params = np.random.lognormal(mean=param_means)
+    best_param = params_to_keep[-1]
     return best_param
 
 

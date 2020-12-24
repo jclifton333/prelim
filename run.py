@@ -61,14 +61,14 @@ if __name__ == "__main__":
         pool = mp.Pool(processes=num_replicates)
         total_utilities = pool.map(run_replicate_partial, range(num_replicates))
         expected_total_utility = np.mean(total_utilities)
-        standard_error = np.std(total_utilities) / np.sqrt(num_replicates)
+        standard_error = float(np.std(total_utilities) / np.sqrt(num_replicates))
     else:
         expected_total_utility = run_replicate_partial(1)
         standard_error = None
 
     # Display and save results
     print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
-    results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': float(standard_error),
+    results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
                'budget': budget}
     base_name = f'L={L}-{policy_name}'
     prefix = os.path.join(THIS_DIR, 'results', base_name)

@@ -3,7 +3,7 @@ from scipy.special import expit
 from environment import PoissonDisease
 from model_estimation import fit_model
 from functools import partial
-from optim import random_hill_climb_policy_optimizer
+import optim
 from numba import njit
 import pdb
 
@@ -66,7 +66,7 @@ def rollout(policy_parameter, env, budget, time_horizon, discount_factor=0.96):
     rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L)
     rollout_env.reset()
 
-    A = np.zeros(rollout_env.L) # Initial action
+    A = np.zeros(rollout_env.L)  # Initial action
     for t in range(time_horizon):
         rollout_env.step(A)
         total_utility -= discount_factor**t * rollout_env.Y.mean()
@@ -84,7 +84,7 @@ def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer):
 
 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
-                         policy_optimizer=random_hill_climb_policy_optimizer):
+                         policy_optimizer=optim.genetic_policy_optimizer):
     model_parameter_estimate = fit_model(env, perturb=False)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer)
     A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X,
@@ -93,11 +93,13 @@ def policy_search_policy(env, budget, time_horizon, discount_factor,
 
 
 if __name__ == "__main__":
+    # ToDo: replace bootstrap distribution by asymptotic distribution
+
     L = 50
     time_horizon = 10
     budget = 10
     discount_factor = 0.96
-    policy_optimizer = random_hill_climb_policy_optimizer
+    policy_optimizer = optim.genetic_policy_optimizer
 
     env = PoissonDisease(L=L)
     env.reset()
@@ -107,7 +109,7 @@ if __name__ == "__main__":
     total_reward = 0.
     for t in range(time_horizon):
         total_reward += discount_factor**t * env.Y.mean()
-        A = policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
-        env.step(A)
+        action_info = policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
+        env.step(action_info['A'])
         print(t, total_reward)
 

@@ -21,9 +21,9 @@ def random_minimizer(f, center_param, n_draws=100, scale=0.5):
 
 def negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penalty=1.):
     transformed_param = copy.copy(param_vec)
-    transformed_param[2:] = np.exp(transformed_param[2:])
+    transformed_param[3:] = np.exp(transformed_param[3:])
     l2 = np.mean(transformed_param ** 2)
-    endemic_term = np.exp(np.dot(X_stacked[:, :2], transformed_param[:2]))
+    endemic_term = np.exp(np.dot(X_stacked[:, :3], transformed_param[:3]))
     autoregressive_term = np.dot(X_stacked[:, 3:5], transformed_param[3:5])
     spatiotemporal_term = np.dot(X_stacked[:, 5:7], transformed_param[5:7])
     mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
@@ -53,7 +53,7 @@ def fit_model(env, perturb=True):
     nll_partial = partial(negative_log_likelihood, Y_stacked=Y_stacked, weights=weights, X_stacked=X_stacked)
     result = minimize(nll_partial, x0=initial_param, method='L-BFGS-B')
     estimate = result.x
-    # estimate = random_minimizer(nll_partial, initial_param)
+    estimate = np.maximum(np.minimum(estimate, 3), -3)  # clamp estimate to sane range
     return estimate
 
 
