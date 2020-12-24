@@ -10,8 +10,9 @@ import pdb
 
 def priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix):
     mean_counts_ = mean_counts_from_model_parameter(model_parameter, X)
-    mean_counts_backup_ = np.dot(spatial_weight_matrix, mean_counts_)
-    priority_features = np.column_stack([mean_counts_, mean_counts_backup_])
+    Y = X[:, 3]
+    spatial_weight_times_ytm1 = X[:, 5]
+    priority_features = np.column_stack([mean_counts_, Y, spatial_weight_times_ytm1])
     priority_score = expit(np.dot(priority_features, policy_parameter))
     return priority_score
 

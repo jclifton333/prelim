@@ -29,6 +29,20 @@ def random_hill_climb_policy_optimizer(rollout, n_it=20, n_rollout_per_it=10, nu
     return best_param
 
 
+def genetic_policy_optimizer(rollout, n_it=20, n_rollout_per_it=10, num_param=3, n_survive=5,
+                             n_per_gen=10, n_gen=2):
+
+    params = np.random.lognormal(size=(n_per_gen, num_param))
+    for gen in range(n_gen):
+        scores = np.ones(num_param)
+        for ix, p in enumerate(params):
+            scores[ix] = expected_utility_at_param(p, rollout, n_rollout_per_it=n_rollout_per_it)
+
+    # ToDo: WIP
+
+    return best_param
+
+
 def random_q_optimizer(q, L, budget, n_it=100):
     A = np.zeros(L)
     A[:budget] = 1
