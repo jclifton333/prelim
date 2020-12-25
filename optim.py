@@ -3,25 +3,28 @@ from copy import copy
 import pdb
 
 
-def expected_utility_at_param(param, rollout, n_rollout_per_it):
+def expected_utility_at_param(param, rollout, model_parameters, n_rollout_per_it):
     expected_utility = 0.
-    for _ in range(n_rollout_per_it):
-        utility = rollout(param)
+    for it in range(n_rollout_per_it):
+        if isinstance(model_parameters, list):
+            utility = rollout(param, model_parameters[it])
+        else:
+            utility = rollout(param, model_parameters)
         expected_utility += utility / n_rollout_per_it
     return expected_utility
 
 
-def random_hill_climb_policy_optimizer(rollout, n_it=20, n_rollout_per_it=10, num_param=2):
+def random_hill_climb_policy_optimizer(rollout, model_parameters, n_it=20, n_rollout_per_it=10, num_param=2):
 
     best_param = np.ones(num_param)
 
-    # Get initial total utility
-    best_utility = expected_utility_at_param(best_param, rollout, n_rollout_per_it=n_rollout_per_it)
+    # Get total utility at initial iterate
+    best_utility = expected_utility_at_param(best_param, rollout, model_parameters, n_rollout_per_it=n_rollout_per_it)
 
     # Random search hill-climbing
     for it in range(n_it):
         param = best_param + np.random.normal(size=num_param)
-        utility = expected_utility_at_param(param, rollout, n_rollout_per_it=n_rollout_per_it)
+        utility = expected_utility_at_param(param, rollout, model_parameters, n_rollout_per_it=n_rollout_per_it)
         if utility > best_utility:
             best_utility = utility
             best_param = param
@@ -29,14 +32,14 @@ def random_hill_climb_policy_optimizer(rollout, n_it=20, n_rollout_per_it=10, nu
     return best_param
 
 
-def genetic_policy_optimizer(rollout, n_rollout_per_it=10, num_param=3, n_survive=5,
+def genetic_policy_optimizer(rollout, model_parameters, n_rollout_per_it=10, num_param=3, n_survive=5,
                              n_per_gen=10, n_gen=2):
 
     params = np.random.lognormal(size=(n_per_gen, num_param))
     for gen in range(n_gen):
         scores = np.ones(n_per_gen)
         for ix, p in enumerate(params):
-            scores[ix] = expected_utility_at_param(p, rollout, n_rollout_per_it=n_rollout_per_it)
+            scores[ix] = expected_utility_at_param(p, rollout, model_parameters, n_rollout_per_it=n_rollout_per_it)
         params_to_keep = params[np.argsort(scores)[-n_survive:]]
         if gen < n_gen - 1:
             offspring_param_means = np.log(params_to_keep) - 1 / 2

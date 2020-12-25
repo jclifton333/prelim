@@ -30,3 +30,13 @@ def greedy_model_based_policy(env, budget, time_horizon, discount_factor):
     A[highest_mean_counts] = 1
     return {'A': A}
 
+
+def oracle_greedy_model_based_policy(env, budget, time_horizon, discount_factor):
+    model_parameter = policy_search.model_parameter_from_env(env)
+    mean_counts_ = policy_search.mean_counts_from_model_parameter(model_parameter, env.X)
+    A = np.zeros(env.L)
+    highest_mean_counts = np.argsort(mean_counts_)[-budget:]
+    A[highest_mean_counts] = 1
+    return {'A': A}
+
+

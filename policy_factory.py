@@ -14,6 +14,8 @@ def policy_factory(policy_name):
         return baseline_policies.treat_none_policy
     elif policy_name == 'greedy_model_based':
         return baseline_policies.greedy_model_based_policy
+    elif policy_name == 'oracle_greedy_model_based':
+        return baseline_policies.oracle_greedy_model_based_policy
     elif policy_name == 'myopic_model_free':
         return fitted_q.myopic_model_free_policy
     elif policy_name == 'one_step_fitted_q':

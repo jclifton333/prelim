@@ -72,12 +72,11 @@ def env_from_model_parameter(model_parameter, Y_current, t_current, L):
     return env
 
 
-def rollout(policy_parameter, env, budget, time_horizon, model_parameter=None, discount_factor=0.96, oracle=False):
+def rollout(policy_parameter, model_parameter, env, budget, time_horizon, discount_factor=0.96, oracle=False):
     total_utility = 0.
     if oracle:
         rollout_env = copy.deepcopy(env)
     else:
-        model_parameter = fit_model(env, perturb=True)
         rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L)
     rollout_env.reset()
 
@@ -92,18 +91,22 @@ def rollout(policy_parameter, env, budget, time_horizon, model_parameter=None, d
 
 
 def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, oracle=False,
-                  model_parameter=None):
-    # ToDo: can be optimized by first getting list of bootstrap replicates, rather than re-doing for every candidate policy
+                  num_mc_replicates=10):
+    if oracle:
+        model_parameters = [fit_model(env, perturb=True) for _ in range(num_mc_replicates)]
+    else:
+        model_parameters = model_parameter_from_env(env)
     rollout_partial = partial(rollout, env=env, budget=budget, time_horizon=time_horizon,
-                              discount_factor=discount_factor, oracle=oracle, model_parameter=model_parameter)
-    policy_parameter_estimate = policy_optimizer(rollout_partial)
+                              discount_factor=discount_factor, oracle=oracle)
+    policy_parameter_estimate = policy_optimizer(rollout_partial, model_parameters)
     return policy_parameter_estimate
 
 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
                          policy_optimizer=optim.genetic_policy_optimizer):
     model_parameter_estimate = fit_model(env, perturb=False)
-    policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer)
+    policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
+                                              oracle=False)
     A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X,
                               env.spatial_weight_matrix)
     return {'A': A}
@@ -113,7 +116,7 @@ def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
                                 policy_optimizer=optim.genetic_policy_optimizer):
     model_parameter = model_parameter_from_env(env)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
-                                              oracle=True, model_parameter=model_parameter)
+                                              oracle=True)
     A = priority_score_policy(policy_parameter_estimate, model_parameter, budget, env.X,
                               env.spatial_weight_matrix)
     return {'A': A}
