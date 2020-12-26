@@ -48,8 +48,8 @@ class PoissonDisease(object):
                 coord_j = coordinates[j]
                 d_ij = np.abs(coord_i - coord_j).sum()
                 weight_ij = np.exp(-d_ij / kernel_bandwidth)
-                covariance_ij = np.exp(-d_ij / covariance_kernel_bandwidth)
-                # weight_ij = d_ij < 1
+                # covariance_ij = np.exp(-d_ij / covariance_kernel_bandwidth)
+                weight_ij = d_ij < 1
                 self.spatial_weight_matrix[i, j] = weight_ij
                 self.spatial_weight_matrix[j, i] = weight_ij
         self.spatial_weight_matrix /= self.spatial_weight_matrix.sum(axis=1)
