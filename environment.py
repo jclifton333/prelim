@@ -20,7 +20,7 @@ class PoissonDisease(object):
 
     def __init__(self, L, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
                  beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=1, Y_initial=None,
-                 t_initial=None, covariance_kernel_bandwidth=1.):
+                 t_initial=None, overdispersion=None, covariance_kernel_bandwidth=1.):
         self.L = L
         self.alpha_nu = alpha_nu
         self.alpha_lambda = alpha_lambda
@@ -35,6 +35,12 @@ class PoissonDisease(object):
 
         # phi (spatiotemporal effect)
         self.phi = np.exp(self.alpha_phi)
+
+        # Get parameters for neg binom if overdispersion is given
+        if overdispersion is not None:
+            self.negbinom_p = 1 - 1/overdispersion
+        else:
+            self.negbinom_p = None
 
         # Generate coordinates uniformly on root_L x root_L square
         root_L = np.sqrt(L)
@@ -117,7 +123,14 @@ class PoissonDisease(object):
             spatial_weight_times_interaction = self.mean_counts(self.Y, A, nu)
         X = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction, spatial_weight_times_ytm1,
                              -spatial_weight_times_interaction))
-        Y = np.random.poisson(mean_counts_)
+
+        if self.negbinom_p is None:
+            Y = np.random.poisson(mean_counts_)
+        else:
+            # ToDo: check numpy parameterization
+            r = mean_counts_ * (1 - self.negbinom_p) / self.negbinom_p
+            Y = np.random.negative_binomial(r=r, p=self.negbinom_p)
+
         self.X = X
         self.Y = Y
         self.t += 1

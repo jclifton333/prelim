@@ -26,7 +26,7 @@ def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_f
 
     # Deploy policy
     for t in range(time_horizon):
-        total_utility += discount_factor**t * env.Y.sum()
+        total_utility += discount_factor**t * env.Y.mean()
         action_info = policy(env, budget, time_horizon-t, discount_factor)
         if 'propensities' in action_info.keys():
             propensities = action_info['propensities']
