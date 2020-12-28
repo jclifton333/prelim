@@ -3,6 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 from functools import partial
 from environment import PoissonDisease
+from math import comb
 import copy
 
 
@@ -19,15 +20,34 @@ def random_minimizer(f, center_param, n_draws=100, scale=0.5):
     return best_param
 
 
-def negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penalty=1.):
+def mean_counts_from_param(param_vec, X_stacked):
     transformed_param = copy.copy(param_vec)
     transformed_param[3:] = np.exp(transformed_param[3:])
-    l2 = np.mean(transformed_param ** 2)
     endemic_term = np.exp(np.dot(X_stacked[:, :3], transformed_param[:3]))
     autoregressive_term = np.dot(X_stacked[:, 3:5], transformed_param[3:5])
     spatiotemporal_term = np.dot(X_stacked[:, 5:7], transformed_param[5:7])
     mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
     mean_counts_ = np.maximum(mean_counts_, 0.1)
+    return mean_counts_, transformed_param
+
+
+def negbinom_negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penalty=1.):
+    mean_counts_, transformed_param = mean_counts_from_param(param_vec, X_stacked)
+    P = (1 / param_vec[7]) / (1 - (1 / param_vec[7]))  # overdispersion -> p
+    R = mean_counts_ * (1 - P) / P
+    neg_log_lik = 0.
+    if weights is None:
+       weights = np.ones(len(Y_stacked))
+    for y, r, p, w in zip(Y_stacked, R, P, weights):
+       binom_coef = comb(y + r - 1, y)
+       log_lik = np.log(binom_coef) + r*np.log(1 - p) + y*np.log(p)
+       neg_log_lik -= w * log_lik
+    return neg_log_lik
+
+
+def poisson_negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penalty=1.):
+    mean_counts_, transformed_param = mean_counts_from_param(param_vec, X_stacked)
+    l2 = np.mean(transformed_param ** 2)
     log_counts = np.log(mean_counts_)
     if weights is not None:
         sum_mean_counts_ = np.dot(weights, mean_counts_)
