@@ -21,7 +21,7 @@ def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optim
     K_current = env.get_current_K(kernel)
 
     def q(A_):
-        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_)
+        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel=kernel)
         X_at_A = np.column_stack((X_at_A, K_at_A))
         q_ = model.predict(X_at_A).sum()
         return q_

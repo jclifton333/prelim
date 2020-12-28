@@ -24,7 +24,7 @@ def treat_none_policy(env, budget, time_horizon, discount_factor, **kwargs):
 
 def greedy_model_based_policy(env, budget, time_horizon, discount_factor, kernel='network'):
     model_parameter_estimate = model_estimation.fit_model(env)
-    K = env.get_current_K('network')
+    K = env.get_current_K(kernel)
     mean_counts_ = policy_search.mean_counts_from_model_parameter(model_parameter_estimate, env.X, K)
     A = np.zeros(env.L)
     highest_mean_counts = np.argsort(mean_counts_)[-budget:]

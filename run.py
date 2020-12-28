@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--true_kernel', type=str)
     parser.add_argument('--specified_kernel', type=str)
     parser.add_argument('--global_kernel_bandwidth', type=float)
+    parser.add_argument('--replicate_batches', type=int)
     args = parser.parse_args()
 
     L = args.L
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     policy_name = args.policy_name
     policy = policy_factory(policy_name)
     num_replicates = args.num_replicates
+    replicate_batches = args.replicate_batches
     true_kernel = args.true_kernel
     specified_kernel = args.specified_kernel
     global_kernel_bandwidth = args.global_kernel_bandwidth
@@ -64,10 +66,14 @@ if __name__ == "__main__":
                                     discount_factor=DISCOUNT_FACTOR, specified_kernel=specified_kernel)
 
     if num_replicates > 1:
+        replicates_per_batch = int(num_replicates / replicate_batches)
         pool = mp.Pool(processes=num_replicates)
-        total_utilities = pool.map(run_replicate_partial, range(num_replicates))
-        expected_total_utility = np.mean(total_utilities)
-        standard_error = float(np.std(total_utilities) / np.sqrt(num_replicates))
+        all_results = []
+        for batch in range(replicate_batches):
+            batch_results = pool.map(run_replicate_partial, range(batch*num_replicates, (batch+1)*num_replicates))
+            all_results += batch_results
+        expected_total_utility = np.mean(all_results)
+        standard_error = float(np.std(all_results) / np.sqrt(num_replicates))
 
         # Save results
         results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
