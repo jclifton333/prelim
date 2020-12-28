@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_replicates', type=int)
     parser.add_argument('--true_kernel', type=str)
     parser.add_argument('--specified_kernel', type=str)
+    parser.add_argument('--global_kernel_bandwidth', type=float)
     args = parser.parse_args()
 
     L = args.L
@@ -56,8 +57,9 @@ if __name__ == "__main__":
     num_replicates = args.num_replicates
     true_kernel = args.true_kernel
     specified_kernel = args.specified_kernel
+    global_kernel_bandwidth = args.global_kernel_bandwidth
 
-    env = PoissonDisease(L=L, kernel=true_kernel)
+    env = PoissonDisease(L=L, kernel=true_kernel, kernel_bandwidth=global_kernel_bandwidth)
     run_replicate_partial = partial(run_replicate, env=env, budget=budget, time_horizon=time_horizon, policy=policy,
                                     discount_factor=DISCOUNT_FACTOR, specified_kernel=specified_kernel)
 
@@ -66,17 +68,20 @@ if __name__ == "__main__":
         total_utilities = pool.map(run_replicate_partial, range(num_replicates))
         expected_total_utility = np.mean(total_utilities)
         standard_error = float(np.std(total_utilities) / np.sqrt(num_replicates))
+
+        # Save results
+        results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
+                   'budget': budget, 'true_kernel': true_kernel, 'specified_kernel': specified_kernel,
+                   'global_kernel_bandwidth': global_kernel_bandwidth}
+        base_name = f'L={L}-{policy_name}-{specified_kernel}'
+        prefix = os.path.join(THIS_DIR, 'results', base_name)
+        suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
+        fname = f'{prefix}_{suffix}.yml'
+        with open(fname, 'w') as outfile:
+            yaml.dump(results, outfile)
     else:
         expected_total_utility = run_replicate_partial(1)
-        standard_error = None
 
-    # Display and save results
+    # Display results
     print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
-    results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
-               'budget': budget, 'true_kernel': true_kernel, 'specified_kernel': specified_kernel}
-    base_name = f'L={L}-{policy_name}-{specified_kernel}'
-    prefix = os.path.join(THIS_DIR, 'results', base_name)
-    suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
-    fname = f'{prefix}_{suffix}.yml'
-    with open(fname, 'w') as outfile:
-      yaml.dump(results, outfile)
+

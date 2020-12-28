@@ -22,6 +22,7 @@ if __name__ == "__main__":
                 score = d['score']
                 specified_kernel = d['specified_kernel']
                 se = d['se']
+                summary_dict['specified_kernel'].append(specified_kernel)
                 summary_dict['policy'].append(policy)
                 summary_dict['L'].append(L)
                 summary_dict['score'].append(score)

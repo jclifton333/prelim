@@ -55,11 +55,9 @@ class PoissonDisease(object):
                 self.network_spatial_weight_matrix[j, i] = weight_ij
 
                 # Get global kernel
-                self.global_spatial_weight_matrix[i, j] = weight_ij
-                self.global_spatial_weight_matrix[j, i] = weight_ij
-                weight_ij = np.exp(-d_ij / kernel_bandwidth)
-                self.global_spatial_weight_matrix[i, j] = weight_ij
-                self.global_spatial_weight_matrix[j, i] = weight_ij
+                global_weight_ij = np.exp(-d_ij / kernel_bandwidth)
+                self.global_spatial_weight_matrix[i, j] = global_weight_ij
+                self.global_spatial_weight_matrix[j, i] = global_weight_ij
 
         self.network_spatial_weight_matrix /= self.network_spatial_weight_matrix.sum(axis=1)
         self.global_spatial_weight_matrix /= self.global_spatial_weight_matrix.sum(axis=1)
