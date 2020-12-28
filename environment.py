@@ -38,9 +38,11 @@ class PoissonDisease(object):
 
         # Get parameters for neg binom if overdispersion is given
         if overdispersion is not None:
-            self.negbinom_p = 1 - 1/overdispersion
+            self.negbinom_p = 1 - 1 / overdispersion
+            self.overdispersion = overdispersion
         else:
             self.negbinom_p = None
+            self.overdispersion = None
 
         # Generate coordinates uniformly on root_L x root_L square
         root_L = np.sqrt(L)
@@ -128,8 +130,8 @@ class PoissonDisease(object):
             Y = np.random.poisson(mean_counts_)
         else:
             # ToDo: check numpy parameterization
-            r = mean_counts_ * (1 - self.negbinom_p) / self.negbinom_p
-            Y = np.random.negative_binomial(r=r, p=self.negbinom_p)
+            r = np.ceil(mean_counts_ * self.negbinom_p / (1 - self.negbinom_p))
+            Y = np.random.negative_binomial(n=r, p=self.negbinom_p)
 
         self.X = X
         self.Y = Y

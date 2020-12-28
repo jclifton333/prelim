@@ -33,16 +33,21 @@ def mean_counts_from_param(param_vec, X_stacked):
 
 def negbinom_negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penalty=1.):
     mean_counts_, transformed_param = mean_counts_from_param(param_vec, X_stacked)
-    P = (1 / param_vec[7]) / (1 - (1 / param_vec[7]))  # overdispersion -> p
-    R = mean_counts_ * (1 - P) / P
-    neg_log_lik = 0.
+    D = np.exp(param_vec[7])
+    p = D / (1 + D)  # ToDo: check
+    R = mean_counts_ * D
+    nll = 0.
     if weights is None:
        weights = np.ones(len(Y_stacked))
-    for y, r, p, w in zip(Y_stacked, R, P, weights):
-       binom_coef = comb(y + r - 1, y)
-       log_lik = np.log(binom_coef) + r*np.log(1 - p) + y*np.log(p)
-       neg_log_lik -= w * log_lik
-    return neg_log_lik
+
+    # for y, r, w in zip(Y_stacked, R, weights):
+    #     binom_coef = comb(y + r - 1, y)
+    #     log_lik = np.log(binom_coef) + r*np.log(p) + y*np.log(1 - p)
+    #     nll -= w * log_lik
+
+    # using least-squares
+
+    return nll
 
 
 def poisson_negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penalty=1.):
@@ -60,30 +65,45 @@ def poisson_negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=Non
     return nll
 
 
-def fit_model(env, perturb=True):
+def negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=None, penalty=1, model='poisson'):
+    if model == 'poisson':
+        nll = poisson_negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=weights, penalty=penalty)
+    elif model == 'negbinom':
+        nll = negbinom_negative_log_likelihood(param_vec, Y_stacked, X_stacked, weights=weights, penalty=penalty)
+    return nll
+
+
+def fit_model(env, perturb=True, model='poisson'):
     initial_param = np.concatenate(([env.alpha_nu], np.log(env.beta_nu), [env.alpha_lambda], [np.log(env.lambda_a)],
                                     [env.alpha_phi], [np.log(env.phi_a)]))
+    if model == 'negbinom':
+        # ToDo: check that this matches parameterization
+        initial_param = np.concatenate((initial_param, [np.log(env.overdispersion)]))
+
     Y_stacked = np.hstack(env.Y_list)
     X_stacked = np.vstack(env.X_list)
+
     if perturb:
         n = X_stacked.shape[0]
         weights = np.random.exponential(size=n)
     else:
         weights = None
-    nll_partial = partial(negative_log_likelihood, Y_stacked=Y_stacked, weights=weights, X_stacked=X_stacked)
+
+    nll_partial = partial(negative_log_likelihood, Y_stacked=Y_stacked, weights=weights, X_stacked=X_stacked,
+                          model=model)
     result = minimize(nll_partial, x0=initial_param, method='L-BFGS-B')
     estimate = result.x
     estimate = np.maximum(np.minimum(estimate, 3), -3)  # clamp estimate to sane range
+
     return estimate
 
 
 if __name__ == "__main__":
     L = 50
     T = 1000
-    env = PoissonDisease(L)
+    env = PoissonDisease(L, overdispersion=1.5)
     env.reset()
     for _ in range(T):
         env.step(np.random.binomial(1, 1, L))
-        print(env.Y.sum())
-    param_hat = fit_model(env)
+    param_hat = fit_model(env, model='negbinom')
 
