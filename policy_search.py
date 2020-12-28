@@ -114,7 +114,7 @@ def policy_search_policy(env, budget, time_horizon, discount_factor,
 
 
 def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
-                                policy_optimizer=optim.genetic_policy_optimizer):
+                                policy_optimizer=optim.genetic_policy_optimizer, **kwargs):
     model_parameter = model_parameter_from_env(env)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
                                               oracle=True, kernel='true')
@@ -124,8 +124,6 @@ def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
 
 
 if __name__ == "__main__":
-    # ToDo: replace bootstrap distribution by asymptotic distribution
-
     L = 50
     time_horizon = 10
     budget = 10
@@ -140,7 +138,7 @@ if __name__ == "__main__":
     total_reward = 0.
     for t in range(time_horizon):
         total_reward += discount_factor**t * env.Y.mean()
-        action_info = oracle_policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
+        action_info = policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
         env.step(action_info['A'])
         print(t, total_reward)
 

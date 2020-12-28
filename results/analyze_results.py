@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     date = args.date
 
-    summary_dict = {'policy': [], 'L': [], 'score': [], 'se': []}
+    summary_dict = {'policy': [], 'L': [], 'score': [], 'se': [], 'specified_kernel': []}
     for fname in os.listdir():
         if fname.endswith(".yml"):
             if date is None or date in fname:
@@ -20,11 +20,12 @@ if __name__ == "__main__":
                 policy = d['policy']
                 L = d['L']
                 score = d['score']
+                specified_kernel = d['specified_kernel']
                 se = d['se']
                 summary_dict['policy'].append(policy)
                 summary_dict['L'].append(L)
                 summary_dict['score'].append(score)
                 summary_dict['se'].append(se)
     summary_df = pd.DataFrame.from_dict(summary_dict)
-    summary_df.sort_values(by=['L', 'policy'], inplace=True)
+    summary_df.sort_values(by=['L', 'policy', 'specified_kernel'], inplace=True)
     print(summary_df)

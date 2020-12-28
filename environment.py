@@ -147,7 +147,7 @@ class PoissonDisease(object):
         K_new = copy.copy(K)
         X_new[:, 4] = -action_infection_interaction
         K_new[:, 1] = -spatial_weight_times_interaction
-        return X_new
+        return X_new, K_new
 
     def get_kernel_terms(self, spatial_weight_times_ytm1, spatial_weight_times_interaction, ytm1,
                          action_infection_interaction):

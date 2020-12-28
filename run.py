@@ -13,7 +13,7 @@ BURN_IN = 5
 BURN_IN_POLICY = policy_factory('random')
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_factor):
+def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_factor, specified_kernel):
     np.random.seed(replicate_index)
 
     total_utility = 0.
@@ -27,7 +27,7 @@ def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_f
     # Deploy policy
     for t in range(time_horizon):
         total_utility += discount_factor**t * env.Y.sum()
-        action_info = policy(env, budget, time_horizon-t, discount_factor)
+        action_info = policy(env, budget, time_horizon-t, discount_factor, kernel=specified_kernel)
         if 'propensities' in action_info.keys():
             propensities = action_info['propensities']
         else:
@@ -43,7 +43,8 @@ if __name__ == "__main__":
     parser.add_argument('--time_horizon', type=int)
     parser.add_argument('--budget', type=int)
     parser.add_argument('--num_replicates', type=int)
-    parser.add_argument('--kernel', type=str, const='network')
+    parser.add_argument('--true_kernel', type=str)
+    parser.add_argument('--specified_kernel', type=str)
     args = parser.parse_args()
 
     L = args.L
@@ -53,11 +54,12 @@ if __name__ == "__main__":
     policy_name = args.policy_name
     policy = policy_factory(policy_name)
     num_replicates = args.num_replicates
-    kernel = args.kernel
+    true_kernel = args.true_kernel
+    specified_kernel = args.specified_kernel
 
-    env = PoissonDisease(L=L, kernel=kernel)
+    env = PoissonDisease(L=L, kernel=true_kernel)
     run_replicate_partial = partial(run_replicate, env=env, budget=budget, time_horizon=time_horizon, policy=policy,
-                                    discount_factor=DISCOUNT_FACTOR)
+                                    discount_factor=DISCOUNT_FACTOR, specified_kernel=specified_kernel)
 
     if num_replicates > 1:
         pool = mp.Pool(processes=num_replicates)
@@ -71,8 +73,8 @@ if __name__ == "__main__":
     # Display and save results
     print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
     results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
-               'budget': budget, 'specified_kernel': specified_kernel}
-    base_name = f'L={L}-{policy_name}'
+               'budget': budget, 'true_kernel': true_kernel, 'specified_kernel': specified_kernel}
+    base_name = f'L={L}-{policy_name}-{specified_kernel}'
     prefix = os.path.join(THIS_DIR, 'results', base_name)
     suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
     fname = f'{prefix}_{suffix}.yml'
