@@ -20,7 +20,7 @@ class PoissonDisease(object):
 
     def __init__(self, L, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
                  beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=1, Y_initial=None,
-                 t_initial=None, covariance_kernel_bandwidth=1.):
+                 t_initial=None, kernel='network'):
         self.L = L
         self.alpha_nu = alpha_nu
         self.alpha_lambda = alpha_lambda
@@ -41,18 +41,35 @@ class PoissonDisease(object):
         coordinates = np.random.uniform(low=0, high=root_L, size=L)
 
         # Construct spatial weight matrix covariance matrix
-        self.spatial_weight_matrix = np.zeros((L, L))
+        self.network_spatial_weight_matrix = np.zeros((L, L))
+        self.global_spatial_weight_matrix = np.zeros((L, L))
         for i in range(L):
             for j in range(i, L):
                 coord_i = coordinates[i]
                 coord_j = coordinates[j]
+
+                # Get network kernel
                 d_ij = np.abs(coord_i - coord_j).sum()
-                weight_ij = np.exp(-d_ij / kernel_bandwidth)
-                # covariance_ij = np.exp(-d_ij / covariance_kernel_bandwidth)
                 weight_ij = d_ij < 1
-                self.spatial_weight_matrix[i, j] = weight_ij
-                self.spatial_weight_matrix[j, i] = weight_ij
-        self.spatial_weight_matrix /= self.spatial_weight_matrix.sum(axis=1)
+                self.network_spatial_weight_matrix[i, j] = weight_ij
+                self.network_spatial_weight_matrix[j, i] = weight_ij
+
+                # Get global kernel
+                self.global_spatial_weight_matrix[i, j] = weight_ij
+                self.global_spatial_weight_matrix[j, i] = weight_ij
+                weight_ij = np.exp(-d_ij / kernel_bandwidth)
+                self.global_spatial_weight_matrix[i, j] = weight_ij
+                self.global_spatial_weight_matrix[j, i] = weight_ij
+
+
+        self.network_spatial_weight_matrix /= self.network_spatial_weight_matrix.sum(axis=1)
+        self.global_spatial_weight_matrix /= self.global_spatial_weight_matrix.sum(axis=1)
+
+        self.kernel = kernel
+        if kernel == 'network':
+            self.spatial_weight_matrix = self.network_spatial_weight_matrix
+        else:
+            self.spatial_weight_matrix = self.global_spatial_weight_matrix
 
         self.Y_initial = Y_initial
         self.t_initial = t_initial
@@ -62,6 +79,8 @@ class PoissonDisease(object):
         self.t = None
         self.X_list = []  # For collecting dependent variables into sequence of design matrices
         self.Y_list = []
+        self.K_network_list = []
+        self.K_global_list = []
         self.propensities_list = []
 
     def get_endemic_effect(self, t):
@@ -86,6 +105,8 @@ class PoissonDisease(object):
 
         self.X_list = []
         self.Y_list = []
+        self.K_network_list = []
+        self.K_global_list = []
         self.propensities_list = []
 
     def mean_counts(self, Ytm1, Atm1, nu):
@@ -102,10 +123,19 @@ class PoissonDisease(object):
         return mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, \
                spatial_weight_times_interaction
 
-    def get_X_at_A(self, X, A):
+    def get_X_at_A(self, X, A, kernel=None):
+        # ToDo: return separate arrays for kernel and non-kernel features
+
         Y = X[:, 3]
         action_infection_interaction = Y * A
-        spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
+
+        if kernel is None:
+            spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
+        elif kernel == 'network':
+            spatial_weight_times_interaction = np.dot(self.network_spatial_weight_matrix, action_infection_interaction)
+        elif kernel == 'global':
+            spatial_weight_times_interaction = np.dot(self.global_spatial_weight_matrix, action_infection_interaction)
+
         X_new = copy.copy(X)
         X_new[:, 4] = -action_infection_interaction
         X_new[:, 6] = -spatial_weight_times_interaction
@@ -115,12 +145,31 @@ class PoissonDisease(object):
         nu, z = self.get_endemic_effect(self.t)
         mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, \
             spatial_weight_times_interaction = self.mean_counts(self.Y, A, nu)
-        X = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction, spatial_weight_times_ytm1,
-                             -spatial_weight_times_interaction))
+
+        X = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction))
         Y = np.random.poisson(mean_counts_)
+
+        if self.kernel == 'network':
+            K_network = np.column_stack((spatial_weight_times_ytm1, spatial_weight_times_interaction))
+            global_spatial_weight_times_ytm1 = np.dot(self.global_spatial_weight_matrix, self.Y)
+            global_spatial_weight_times_interaction = \
+                np.dot(self.global_spatial_weight_matrix, action_infection_interaction)
+            K_global = np.column_stack((global_spatial_weight_times_ytm1, global_spatial_weight_times_interaction))
+            K = K_network
+        else:
+            K_global = np.column_stack((spatial_weight_times_ytm1, spatial_weight_times_interaction))
+            network_spatial_weight_times_ytm1 = np.dot(self.network_spatial_weight_matrix, self.Y)
+            network_spatial_weight_times_interaction = \
+                np.dot(self.network_spatial_weight_matrix, action_infection_interaction)
+            K_network = np.column_stack((network_spatial_weight_times_ytm1, network_spatial_weight_times_interaction))
+            K = K_global
+
         self.X = X
         self.Y = Y
+        self.K = K
         self.t += 1
+        self.K_network_list.append(K_network)
+        self.K_global_list.append(K_global)
         self.X_list.append(X)
         self.Y_list.append(Y)
         if propensities is not None:

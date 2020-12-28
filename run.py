@@ -43,6 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--time_horizon', type=int)
     parser.add_argument('--budget', type=int)
     parser.add_argument('--num_replicates', type=int)
+    parser.add_argument('--kernel', type=str, const='network')
     args = parser.parse_args()
 
     L = args.L
@@ -52,8 +53,9 @@ if __name__ == "__main__":
     policy_name = args.policy_name
     policy = policy_factory(policy_name)
     num_replicates = args.num_replicates
+    kernel = args.kernel
 
-    env = PoissonDisease(L=L)
+    env = PoissonDisease(L=L, kernel=kernel)
     run_replicate_partial = partial(run_replicate, env=env, budget=budget, time_horizon=time_horizon, policy=policy,
                                     discount_factor=DISCOUNT_FACTOR)
 
@@ -69,7 +71,7 @@ if __name__ == "__main__":
     # Display and save results
     print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
     results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
-               'budget': budget}
+               'budget': budget, 'specified_kernel': specified_kernel}
     base_name = f'L={L}-{policy_name}'
     prefix = os.path.join(THIS_DIR, 'results', base_name)
     suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
