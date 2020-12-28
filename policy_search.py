@@ -9,16 +9,16 @@ from numba import njit
 import pdb
 
 
-def priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix):
-    mean_counts_ = mean_counts_from_model_parameter(model_parameter, X)
+def priority_scores(policy_parameter, model_parameter, X, K):
+    mean_counts_ = mean_counts_from_model_parameter(model_parameter, X, K)
     Y = X[:, 3]
-    spatial_weight_times_ytm1 = X[:, 5]
+    spatial_weight_times_ytm1 = K[:, 0]
     priority_features = np.column_stack([mean_counts_, Y, spatial_weight_times_ytm1])
     priority_score = expit(np.dot(priority_features, policy_parameter))
     return priority_score
 
 
-def mean_counts_from_model_parameter(model_parameter, X):
+def mean_counts_from_model_parameter(model_parameter, X, K):
     # ToDo: handling of parameter transformations can probably be improved here and in env_from_param
 
     alpha_nu = model_parameter[0]
@@ -28,7 +28,7 @@ def mean_counts_from_model_parameter(model_parameter, X):
     endemic_term = np.exp(endemic_term)
 
     autoregressive_term = np.dot(X[:, 3:5], np.exp(model_parameter[3:5]))
-    spatiotemporal_term = np.dot(X[:, 5:7], np.exp(model_parameter[5:7]))
+    spatiotemporal_term = np.dot(K[:, :2], np.exp(model_parameter[5:7]))
 
     mean_counts_ = endemic_term + autoregressive_term + spatiotemporal_term
     return mean_counts_
@@ -42,8 +42,8 @@ def action_from_priority_scores(priority_scores_, budget):
     return A
 
 
-def priority_score_policy(policy_parameter, model_parameter, budget, X, spatial_weight_matrix):
-    priority_scores_ = priority_scores(policy_parameter, model_parameter, X, spatial_weight_matrix)
+def priority_score_policy(policy_parameter, model_parameter, budget, X, K):
+    priority_scores_ = priority_scores(policy_parameter, model_parameter, X, K)
     A = action_from_priority_scores(priority_scores_, budget)
     return A
 
@@ -59,7 +59,7 @@ def model_parameter_from_env(env):
     return model_parameter
 
 
-def env_from_model_parameter(model_parameter, Y_current, t_current, L):
+def env_from_model_parameter(model_parameter, Y_current, t_current, L, kernel):
     alpha_nu = model_parameter[0]
     beta_nu = np.exp(model_parameter[1:3])
     alpha_lambda = model_parameter[3]
@@ -68,16 +68,17 @@ def env_from_model_parameter(model_parameter, Y_current, t_current, L):
     phi_a = np.exp(model_parameter[6])
 
     env = PoissonDisease(L, lambda_a = lambda_a, phi_a = phi_a, alpha_nu = alpha_nu, alpha_lambda = alpha_lambda,
-                         alpha_phi = alpha_phi, beta_nu = beta_nu, Y_initial=Y_current, t_initial=t_current)
+                         alpha_phi = alpha_phi, beta_nu = beta_nu, Y_initial=Y_current, t_initial=t_current,
+                         kernel=kernel)
     return env
 
 
-def rollout(policy_parameter, model_parameter, env, budget, time_horizon, discount_factor=0.96, oracle=False):
+def rollout(policy_parameter, model_parameter, env, budget, time_horizon, kernel, discount_factor=0.96, oracle=False):
     total_utility = 0.
     if oracle:
         rollout_env = copy.deepcopy(env)
     else:
-        rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L)
+        rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L, kernel=kernel)
     rollout_env.reset()
 
     A = np.zeros(rollout_env.L)  # Initial action
@@ -90,25 +91,25 @@ def rollout(policy_parameter, model_parameter, env, budget, time_horizon, discou
     return total_utility
 
 
-def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, oracle=False,
+def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, kernel, oracle=False,
                   num_mc_replicates=10):
     if oracle:
-        model_parameters = [fit_model(env, perturb=True) for _ in range(num_mc_replicates)]
+        model_parameters = [fit_model(env, perturb=True, kernel=kernel) for _ in range(num_mc_replicates)]
     else:
         model_parameters = model_parameter_from_env(env)
     rollout_partial = partial(rollout, env=env, budget=budget, time_horizon=time_horizon,
-                              discount_factor=discount_factor, oracle=oracle)
+                              kernel=kernel, discount_factor=discount_factor, oracle=oracle)
     policy_parameter_estimate = policy_optimizer(rollout_partial, model_parameters)
     return policy_parameter_estimate
 
 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
-                         policy_optimizer=optim.genetic_policy_optimizer):
-    model_parameter_estimate = fit_model(env, perturb=False)
+                         policy_optimizer=optim.genetic_policy_optimizer, kernel='network'):
+    model_parameter_estimate = fit_model(env, kernel=kernel, perturb=False)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
-                                              oracle=False)
-    A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X,
-                              env.spatial_weight_matrix)
+                                              oracle=False, kernel=kernel)
+    K = env.get_current_K(kernel)
+    A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X, K)
     return {'A': A}
 
 
@@ -116,9 +117,9 @@ def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
                                 policy_optimizer=optim.genetic_policy_optimizer):
     model_parameter = model_parameter_from_env(env)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
-                                              oracle=True)
-    A = priority_score_policy(policy_parameter_estimate, model_parameter, budget, env.X,
-                              env.spatial_weight_matrix)
+                                              oracle=True, kernel='true')
+    K = env.get_current_K('true')
+    A = priority_score_policy(policy_parameter_estimate, model_parameter, budget, env.X, K)
     return {'A': A}
 
 

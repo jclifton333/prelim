@@ -22,7 +22,7 @@ def treat_none_policy(env, budget, time_horizon, discount_factor):
     return {'A': A}
 
 
-def greedy_model_based_policy(env, budget, time_horizon, discount_factor, specified_kernel):
+def greedy_model_based_policy(env, budget, time_horizon, discount_factor):
     model_parameter_estimate = model_estimation.fit_model(env)
     mean_counts_ = policy_search.mean_counts_from_model_parameter(model_parameter_estimate, env.X)
     A = np.zeros(env.L)
