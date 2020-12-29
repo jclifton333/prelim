@@ -12,7 +12,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     date = args.date
-    bandwidth_filter = [float(b) for b in args.bandwidth_filter.split(',')]
+    if args.bandwidth_filter is not None:
+        bandwidth_filter = [float(b) for b in args.bandwidth_filter.split(',')]
+    else:
+        bandwidth_filter = None
 
     summary_dict = {'policy': [], 'L': [], 'score': [], 'se': [], 'specified_kernel': [],
                     'bandwidth': []}
@@ -31,7 +34,10 @@ if __name__ == "__main__":
                     bandwidth = None
 
                 # Check filters
-                keep = bandwidth in bandwidth_filter
+                if bandwidth_filter is not None:
+                    keep = bandwidth in bandwidth_filter
+                else: 
+                    keep = True
                 if keep:
                     summary_dict['specified_kernel'].append(specified_kernel)
                     summary_dict['bandwidth'].append(bandwidth)
