@@ -50,7 +50,7 @@ def genetic_policy_optimizer(rollout, model_parameters, n_rollout_per_it=10, num
     return best_param
 
 
-def random_q_optimizer(q, L, budget, n_it=100):
+def random_q_optimizer(q, L, budget, n_it=1000):
     A = np.zeros(L)
     A[:budget] = 1
     q_best = float('inf')

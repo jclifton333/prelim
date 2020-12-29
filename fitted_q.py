@@ -42,17 +42,10 @@ def greedy_model_free_policy(env, budget, time_horizon, discount_factor, q_optim
 
     X_current = env.X
     K_current = env.get_current_K(kernel)
-
-    def q(A_):
-        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel=kernel)
-        X_at_A = np.column_stack((X_at_A, K_at_A))
-        q_ = model.predict(X_at_A).sum()
-        return q_
-
-    A_dummy = np.zeros(env.L)
-    q_hat_dummy = q(A_dummy)
-    highest_expected_count = np.argsort(q_hat_dummy)[-budget:]
-    A_dummy[highest_expected_count] = 1
+    mean_counts_ = model.predict(np.column_stack((X_current, K_current)))
+    highest_mean_counts = np.argsort(mean_counts_)[-budget:]
+    A = np.zeros(env.L)
+    A[highest_mean_counts] = 1
     return {'A': A}
 
 
