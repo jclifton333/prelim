@@ -3,11 +3,11 @@ from functools import partial
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge
 from scipy.stats import norm
-import optim
+import prelim.optim.optim as optim
 import pdb
 
 
-def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
+def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
                              regressor=Ridge, kernel='network'):
     X = np.vstack(env.X_list)
     K_list = env.get_K_history(kernel)
@@ -23,15 +23,14 @@ def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optim
     def q(A_):
         X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel=kernel)
         X_at_A = np.column_stack((X_at_A, K_at_A))
-        q_ = model.predict(X_at_A).sum()
+        q_ = model.predict(X_at_A)
         return q_
 
     A, q_best = q_optimizer(q, env.L, budget)
     return {'A': A}
 
 
-def greedy_model_free_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
-                             regressor=Ridge, kernel='network'):
+def greedy_model_free_policy(env, budget, time_horizon, discount_factor, regressor=Ridge, kernel='network'):
     X = np.vstack(env.X_list)
     K_list = env.get_K_history(kernel)
     K = np.vstack(K_list)
@@ -63,7 +62,7 @@ def epsilon_greedy_propensity_score_from_A(A, spatial_weight_matrix, epsilon, pr
 
 
 def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
-                            regressor=Ridge, backup_regressor=RandomForestRegressor, epsilon=0.1):
+                             regressor=Ridge, backup_regressor=RandomForestRegressor, epsilon=0.1):
     # ToDo: incorporate kernel features
 
     X = np.vstack(env.X_list)

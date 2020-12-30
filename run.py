@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 from environment import PoissonDisease
-from policy_factory import policy_factory
+from policies.policy_factory import policy_factory
 import multiprocessing as mp
 from functools import partial
 import yaml

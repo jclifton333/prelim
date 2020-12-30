@@ -1,5 +1,7 @@
 import numpy as np
 from copy import copy
+from .fit_lp import fit_lp
+from .lp import lp_max
 import pdb
 
 
@@ -61,6 +63,13 @@ def random_q_optimizer(q, L, budget, n_it=1000):
         if q_it < q_best:
             q_best = q_it
             A_best = copy(A)
+    return A_best, q_best
+
+
+def lp_q_optimizer(q, L, budget):
+    coef, intercept = fit_lp(q, L, budget)
+    A_best = lp_max(coef, intercept, budget)
+    q_best = q(A_best)
     return A_best, q_best
 
 

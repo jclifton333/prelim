@@ -1,12 +1,13 @@
+import sys
+sys.path.append('..')
+
 import numpy as np
 from scipy.special import expit
 from environment import PoissonDisease
-from model_estimation import fit_model
+from .model_estimation import fit_model
 from functools import partial
 import copy
-import optim
-from numba import njit
-import pdb
+import prelim.optim.optim as optim
 
 
 def priority_scores(policy_parameter, model_parameter, X, K):

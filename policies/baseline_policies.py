@@ -1,6 +1,6 @@
 import numpy as np
-import policy_search
-import model_estimation
+from . import policy_search
+from . import model_estimation
 
 
 def random_policy(env, budget, time_horizon, discount_factor, **kwargs):

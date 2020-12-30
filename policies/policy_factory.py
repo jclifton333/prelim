@@ -1,6 +1,6 @@
-import policy_search
-import baseline_policies
-import fitted_q
+from . import baseline_policies
+from . import fitted_q
+from . import policy_search
 
 
 def policy_factory(policy_name):

@@ -2,7 +2,7 @@ import pdb
 import numpy as np
 from scipy.optimize import minimize
 from functools import partial
-from environment import PoissonDisease
+from prelim.environment import PoissonDisease
 import copy
 
 
