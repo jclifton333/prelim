@@ -70,8 +70,9 @@ if __name__ == "__main__":
         pool = mp.Pool(processes=num_replicates)
         all_results = []
         for batch in range(replicate_batches):
-            batch_results = pool.map(run_replicate_partial, range(batch*num_replicates, (batch+1)*num_replicates))
+            batch_results = pool.map(run_replicate_partial, range(batch*replicates_per_batch, (batch+1)*replicates_per_batch))
             all_results += batch_results
+        pool.close()
         expected_total_utility = np.mean(all_results)
         standard_error = float(np.std(all_results) / np.sqrt(num_replicates))
 

@@ -3,6 +3,8 @@ from functools import partial
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge
 from scipy.stats import norm
+from policy_search import mean_counts_from_model_parameter
+from model_estimation import fit_model
 import prelim.optim.optim as optim
 import pdb
 
@@ -24,6 +26,21 @@ def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optim
         X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel=kernel)
         X_at_A = np.column_stack((X_at_A, K_at_A))
         q_ = model.predict(X_at_A)
+        return q_
+
+    A, q_best = q_optimizer(q, env.L, budget)
+    return {'A': A}
+
+
+def myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
+                              kernel='network'):
+    model_parameter_estimate = fit_model(env)
+    X_current = env.X
+    K_current = env.get_current_K(kernel)
+
+    def q(A_):
+        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel=kernel)
+        q_ = mean_counts_from_model_parameter(model_parameter_estimate, X_at_A, K_at_A)
         return q_
 
     A, q_best = q_optimizer(q, env.L, budget)
