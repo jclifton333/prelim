@@ -59,7 +59,7 @@ def random_q_optimizer(q, L, budget, n_it=1000):
     A_best = None
     for it in range(n_it):
         np.random.shuffle(A)
-        q_it = q(A)
+        q_it = q(A).sum()
         if q_it < q_best:
             q_best = q_it
             A_best = copy(A)

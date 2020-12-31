@@ -3,8 +3,8 @@ from functools import partial
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge
 from scipy.stats import norm
-from policy_search import mean_counts_from_model_parameter
-from model_estimation import fit_model
+from .policy_search import mean_counts_from_model_parameter
+from .model_estimation import fit_model
 import prelim.optim.optim as optim
 import pdb
 
@@ -79,27 +79,33 @@ def epsilon_greedy_propensity_score_from_A(A, spatial_weight_matrix, epsilon, pr
 
 
 def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
-                             regressor=Ridge, backup_regressor=RandomForestRegressor, epsilon=0.1):
+                             regressor=RandomForestRegressor, backup_regressor=RandomForestRegressor,
+                             kernel='network'):
     # ToDo: incorporate kernel features
 
     X = np.vstack(env.X_list)
     Y = np.hstack(env.Y_list)
+    K_list = env.get_K_history(kernel)
+    K = np.vstack(K_list)
+    X = np.column_stack((X, K))
 
     # Fit zero-step q
     model0 = regressor()
     model0.fit(X, Y)
 
-    def q0(A_, X_):
-        X_at_A = env.get_X_at_A(X_, A_)
-        q_ = model0.predict(X_at_A).sum()
+    def q0(A_, X_, K_):
+        X_at_A, K_at_A = env.get_X_at_A(X_, K_, A_, kernel=kernel)
+        X_at_A = np.column_stack((X_at_A, K_at_A))
+        q_ = model0.predict(X_at_A)
         return q_
 
     # Get backed-up q values
     v1 = np.zeros(0)
-    for X_ in env.X_list[1:]:
-        q_at_X = partial(q0, X_=X_)
+    for X_, K_ in zip(env.X_list[1:], K_list[1:]):
+        q_at_X = partial(q0, X_=X_, K_=K_)
         A_best, _ = q_optimizer(q_at_X, env.L, budget)
-        X_at_A_best = env.get_X_at_A(X_, A_best)
+        X_at_A_best, K_at_A_best = env.get_X_at_A(X_, K_, A_best)
+        X_at_A_best = np.column_stack((X_at_A_best, K_at_A_best))
         v = model0.predict(X_at_A_best)
         v1 = np.hstack((v1, v))
 
@@ -113,22 +119,15 @@ def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optim
 
     # Minimize q1 estimate
     X_current = env.X
+    K_current = env.get_current_K(kernel)
 
     def q1(A_):
-        X_at_A = env.get_X_at_A(X_current, A_)
-        q_ = model1.predict(X_at_A).sum()
+        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_)
+        X_at_A = np.column_stack((X_at_A, K_at_A))
+        q_ = model1.predict(X_at_A)
         return q_
 
-    A_opt, _ = q_optimizer(q1, env.L, budget)
-
-    # epsilon-greedy exploration
-    if np.random.uniform() < epsilon:
-        A = np.zeros(env.L)
-        A[:budget] = 1
-        np.random.shuffle(A)
-    else:
-        A = A_opt
-
+    A, _ = q_optimizer(q1, env.L, budget)
     return {'A': A}
 
 
