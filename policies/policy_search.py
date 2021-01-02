@@ -1,6 +1,7 @@
 import sys
 sys.path.append('..')
 
+import pdb
 import numpy as np
 from scipy.special import expit
 from environment import PoissonDisease
@@ -15,6 +16,7 @@ def priority_scores(policy_parameter, model_parameter, X, K):
     Y = X[:, 3]
     spatial_weight_times_ytm1 = K[:, 0]
     priority_features = np.column_stack([mean_counts_, Y, spatial_weight_times_ytm1])
+    # priority_features = np.column_stack([mean_counts_, X, K])
     priority_score = expit(np.dot(priority_features, policy_parameter))
     return priority_score
 
@@ -89,7 +91,8 @@ def rollout(policy_parameter, model_parameter, env, budget, time_horizon, kernel
         rollout_env.step(A)
         total_utility -= discount_factor**t * rollout_env.Y.mean()
         X = rollout_env.X
-        A = priority_score_policy(policy_parameter, model_parameter, budget, X, rollout_env.spatial_weight_matrix)
+        K = rollout_env.get_current_K(kernel=kernel)
+        A = priority_score_policy(policy_parameter, model_parameter, budget, X, K)
 
     return total_utility
 
@@ -102,8 +105,8 @@ def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, 
         model_parameters = model_parameter_from_env(env)
     rollout_partial = partial(rollout, env=env, budget=budget, time_horizon=time_horizon,
                               kernel=kernel, discount_factor=discount_factor, oracle=oracle)
-    policy_parameter_estimate = policy_optimizer(rollout_partial, model_parameters)
-    return policy_parameter_estimate
+    policy_parameter_estimate, optimal_value_estimate = policy_optimizer(rollout_partial, model_parameters)
+    return policy_parameter_estimate, optimal_value_estimate
 
 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
@@ -119,8 +122,8 @@ def policy_search_policy(env, budget, time_horizon, discount_factor,
 def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
                                 policy_optimizer=optim.random_policy_optimizer, **kwargs):
     model_parameter = model_parameter_from_env(env)
-    policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
-                                              oracle=True, kernel='true')
+    policy_parameter_estimate, optimal_value_estimate = \
+        policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, oracle=True, kernel='true')
     K = env.get_current_K('true')
     A = priority_score_policy(policy_parameter_estimate, model_parameter, budget, env.X, K)
     return {'A': A}
