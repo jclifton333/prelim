@@ -96,7 +96,7 @@ def rollout(policy_parameter, model_parameter, env, budget, time_horizon, kernel
 
 def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, kernel, oracle=False,
                   num_mc_replicates=10):
-    if oracle:
+    if not oracle:
         model_parameters = [fit_model(env, perturb=True, kernel=kernel) for _ in range(num_mc_replicates)]
     else:
         model_parameters = model_parameter_from_env(env)
