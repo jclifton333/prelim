@@ -60,7 +60,7 @@ def model_parameter_from_env(env):
     return model_parameter
 
 
-def env_from_model_parameter(model_parameter, Y_current, t_current, L, kernel):
+def env_from_model_parameter(model_parameter, Y_current, t_current, L, kernel, spatial_weight_matrices):
     alpha_nu = model_parameter[0]
     beta_nu = np.exp(model_parameter[1:3])
     alpha_lambda = model_parameter[3]
@@ -70,7 +70,7 @@ def env_from_model_parameter(model_parameter, Y_current, t_current, L, kernel):
 
     env = PoissonDisease(L, lambda_a = lambda_a, phi_a = phi_a, alpha_nu = alpha_nu, alpha_lambda = alpha_lambda,
                          alpha_phi = alpha_phi, beta_nu = beta_nu, Y_initial=Y_current, t_initial=t_current,
-                         kernel=kernel)
+                         kernel=kernel, spatial_weight_matrices=spatial_weight_matrices)
     return env
 
 
@@ -79,7 +79,9 @@ def rollout(policy_parameter, model_parameter, env, budget, time_horizon, kernel
     if oracle:
         rollout_env = copy.deepcopy(env)
     else:
-        rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L, kernel=kernel)
+        spatial_weight_matrices = env.get_spatial_weight_matrices()
+        rollout_env = env_from_model_parameter(model_parameter, env.Y, env.t, env.L, kernel,
+                                               spatial_weight_matrices)
     rollout_env.reset()
 
     A = np.zeros(rollout_env.L)  # Initial action
@@ -105,7 +107,7 @@ def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, 
 
 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
-                         policy_optimizer=optim.gp_policy_optimizer, kernel='network'):
+                         policy_optimizer=optim.genetic_policy_optimizer, kernel='network'):
     model_parameter_estimate = fit_model(env, kernel=kernel, perturb=False)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
                                               oracle=False, kernel=kernel)
