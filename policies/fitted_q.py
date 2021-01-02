@@ -96,6 +96,8 @@ def epsilon_greedy_propensity_score_from_A(A, spatial_weight_matrix, epsilon, pr
 def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
                              backup_regressor=RandomForestRegressor, **kwargs):
 
+    # ToDo: roll out from current state, rather than averaging over previous states
+
     model_parameter = model_parameter_from_env(env)
     K_list = env.get_K_history(kernel='true')
 

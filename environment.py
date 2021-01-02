@@ -128,20 +128,6 @@ class PoissonDisease(object):
         self.K_list = []
         self.propensities_list = []
 
-    def mean_counts(self, Ytm1, Atm1, nu):
-        endemic = nu
-        action_infection_interaction = Ytm1 * Atm1
-        autoregressive = self.lambda_ * Ytm1
-        autoregressive_action = self.lambda_a * action_infection_interaction
-        spatial_weight_times_ytm1 = np.dot(self.spatial_weight_matrix, Ytm1)
-        spatiotemporal = self.phi * spatial_weight_times_ytm1
-        spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
-        spatiotemporal_action = self.phi_a * spatial_weight_times_interaction
-        mean_counts_ = endemic + autoregressive - autoregressive_action + spatiotemporal - spatiotemporal_action
-        mean_counts_ = np.maximum(mean_counts_, 0)
-        return mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, \
-               spatial_weight_times_interaction
-
     def get_X_at_A(self, X, K, A, kernel=None):
         # ToDo: return separate arrays for kernel and non-kernel features
 
@@ -197,16 +183,63 @@ class PoissonDisease(object):
             K = self.K
         return K
 
+    def get_features_for_mean(self, Ytm1, Atm1, kernel='true'):
+        spatial_weight_matrix = self.get_spatial_weight_matrix(kernel=kernel)
+        endemic, z = self.get_endemic_effect(self.t)
+        action_infection_interaction = Ytm1 * Atm1
+        autoregressive = self.lambda_ * Ytm1
+        autoregressive_action = self.lambda_a * action_infection_interaction
+        spatial_weight_times_ytm1 = np.dot(spatial_weight_matrix, Ytm1)
+        spatiotemporal = self.phi * spatial_weight_times_ytm1
+        spatial_weight_times_interaction = np.dot(spatial_weight_matrix, action_infection_interaction)
+        spatiotemporal_action = self.phi_a * spatial_weight_times_interaction
+        return z, endemic, autoregressive, -autoregressive_action, spatiotemporal, -spatiotemporal_action
+
+    def mean_counts(self, Ytm1, Atm1):
+        z, endemic, autoregressive, autoregressive_action, spatiotemporal, spatiotemporal_action = \
+            self.get_features_for_mean(Ytm1, Atm1)
+        mean_counts_ = endemic + autoregressive + autoregressive_action + spatiotemporal + spatiotemporal_action
+        mean_counts_ = np.maximum(mean_counts_, 0)
+        return mean_counts_
+
+    def get_spatial_weight_matrix(self, kernel):
+        if kernel == 'true':
+            return self.spatial_weight_matrix
+        elif kernel == 'network':
+            return self.network_spatial_weight_matrix
+        elif kernel == 'global':
+            return self.global_spatial_weight_matrix
+
+    def get_X_and_K(self, A, Y, t, kernel='true'):
+        z, _ = self.get_endemic_effect(t)
+        action_infection_interaction = np.multiply(A, Y)
+        X = np.column_stack((np.ones(self.L), z, Y, -action_infection_interaction))
+        spatial_weight_matrix = self.get_spatial_weight_matrix(kernel=kernel)
+        spatial_weight_times_y = np.dot(spatial_weight_matrix, Y)
+        spatial_weight_times_interaction = np.dot(spatial_weight_matrix, action_infection_interaction)
+        K = np.column_stack((spatial_weight_times_y, spatial_weight_times_interaction))
+        return X, K
+
+    def draw_next_state(self, A, kernel='true'):
+        mean_counts_ = self.mean_counts(self.Y, A)
+        Ytp = np.random.poisson(mean_counts_)
+        z, _ = self.get_endemic_effect(self.t+1)
+        action_infection_interaction = np.multiply(A, Ytp)
+        Xtp = np.column_stack((np.ones(self.L), z, Ytp, -action_infection_interaction))
+        spatial_weight_matrix = self.get_spatial_weight_matrix(kernel=kernel)
+        spatial_weight_times_y = np.dot(spatial_weight_matrix, Ytp)
+        spatial_weight_times_interaction = np.dot(spatial_weight_matrix, action_infection_interaction)
+        Ktp = np.column_stack((spatial_weight_times_y, spatial_weight_times_interaction))
+        return Xtp, Ktp
+
     def step(self, A, propensities=None):
-        nu, z = self.get_endemic_effect(self.t)
-        mean_counts_, action_infection_interaction, spatial_weight_times_ytm1, \
-            spatial_weight_times_interaction = self.mean_counts(self.Y, A, nu)
+        mean_counts_, z, action_infection_interaction, spatial_weight_times_ytm1, \
+            spatial_weight_times_interaction = self.mean_counts(self.Y, A)
 
         X = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction))
         Y = np.random.poisson(mean_counts_)
         K_global, K_network, K = self.get_kernel_terms(spatial_weight_times_ytm1, spatial_weight_times_interaction,
                                                        self.Y, action_infection_interaction)
-
         self.X = X
         self.Y = Y
         self.K = K
