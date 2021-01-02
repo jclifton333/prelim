@@ -28,3 +28,5 @@ def policy_factory(policy_name):
         return fitted_q.greedy_model_free_policy
     elif policy_name == 'myopic_model_based':
         return fitted_q.myopic_model_based_policy
+    elif policy_name == 'oracle_one_step_fitted_q':
+        return fitted_q.oracle_one_step_fitted_q
