@@ -117,7 +117,7 @@ def policy_search_policy(env, budget, time_horizon, discount_factor,
 
 
 def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
-                                policy_optimizer=optim.genetic_policy_optimizer, **kwargs):
+                                policy_optimizer=optim.random_policy_optimizer, **kwargs):
     model_parameter = model_parameter_from_env(env)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
                                               oracle=True, kernel='true')

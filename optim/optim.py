@@ -4,6 +4,7 @@ from .fit_lp import fit_lp
 from .lp import lp_max
 from bayes_opt import BayesianOptimization
 import pdb
+from functools import partial
 
 
 def expected_utility_at_param(param, rollout, model_parameters, n_rollout_per_it):
@@ -15,6 +16,19 @@ def expected_utility_at_param(param, rollout, model_parameters, n_rollout_per_it
             utility = rollout(param, model_parameters)
         expected_utility += utility / n_rollout_per_it
     return expected_utility
+
+
+def random_policy_optimizer(rollout, model_parameters, n_rollout_per_it=10, n_rep=100):
+    params = np.random.uniform(low=0., high=5., size=(n_rep, 3))
+    scores = np.zeros(n_rep)
+    objective = partial(expected_utility_at_param, rollout=rollout, model_parameters=model_parameters,
+                        n_rollout_per_it=n_rollout_per_it)
+    for ix, p in enumerate(params):
+        score_ix = objective(p)
+        scores[ix] = score_ix
+    best_ix = np.argsort(scores)[-1]
+    best_param = params[best_ix]
+    return best_param
 
 
 def random_hill_climb_policy_optimizer(rollout, model_parameters, n_it=20, n_rollout_per_it=10, num_param=2):
@@ -39,7 +53,7 @@ def gp_policy_optimizer(rollout, model_parameters, n_rollout_per_it=10, n_rep=30
     def objective(theta1, theta2, theta3):
         theta = np.array([theta1, theta2, theta3])
         score = expected_utility_at_param(theta, rollout, model_parameters, n_rollout_per_it=n_rollout_per_it)
-        return -score
+        return score
 
     theta_bounds = (0, 5)
     exploration_parameters = np.random.uniform(low=0., high=5., size=(5, 3))
