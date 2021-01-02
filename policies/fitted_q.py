@@ -78,11 +78,9 @@ def epsilon_greedy_propensity_score_from_A(A, spatial_weight_matrix, epsilon, pr
     return propensities
 
 
-def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
+def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
                              regressor=RandomForestRegressor, backup_regressor=RandomForestRegressor,
                              kernel='network'):
-    # ToDo: incorporate kernel features
-
     X = np.vstack(env.X_list)
     Y = np.hstack(env.Y_list)
     K_list = env.get_K_history(kernel)

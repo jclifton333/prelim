@@ -105,7 +105,7 @@ def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, 
 
 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
-                         policy_optimizer=optim.genetic_policy_optimizer, kernel='network'):
+                         policy_optimizer=optim.gp_policy_optimizer, kernel='network'):
     model_parameter_estimate = fit_model(env, kernel=kernel, perturb=False)
     policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
                                               oracle=False, kernel=kernel)

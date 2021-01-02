@@ -2,6 +2,7 @@ import numpy as np
 from copy import copy
 from .fit_lp import fit_lp
 from .lp import lp_max
+from bayes_opt import BayesianOptimization
 import pdb
 
 
@@ -32,6 +33,26 @@ def random_hill_climb_policy_optimizer(rollout, model_parameters, n_it=20, n_rol
             best_param = param
 
     return best_param
+
+
+def gp_policy_optimizer(rollout, model_parameters, n_rollout_per_it=10, n_rep=30, initial_theta=None):
+    def objective(theta1, theta2, theta3):
+        theta = np.array([theta1, theta2, theta3])
+        score = expected_utility_at_param(theta, rollout, model_parameters, n_rollout_per_it=n_rollout_per_it)
+        return -score
+
+    theta_bounds = (0, 5)
+    exploration_parameters = np.random.uniform(low=0., high=5., size=(5, 3))
+
+    explore_ = {'theta1': exploration_parameters[:, 0], 'theta2': exploration_parameters[:, 1],
+                'theta3': exploration_parameters[:, 2]}
+    bounds = {'theta1': theta_bounds, 'theta2': theta_bounds, 'theta3': theta_bounds}
+    bo = BayesianOptimization(objective, bounds)
+    bo.explore(explore_)
+    bo.maximize(init_points=0, n_iter=n_rep, alpha=1e-4)
+    best_param = bo.res['max']['max_params']
+    theta_hat = np.array([best_param['theta1'], best_param['theta2'], best_param['theta3']])
+    return theta_hat
 
 
 def genetic_policy_optimizer(rollout, model_parameters, n_rollout_per_it=10, num_param=3, n_survive=5,
