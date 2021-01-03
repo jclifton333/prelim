@@ -147,22 +147,10 @@ class PoissonDisease(object):
         K_new[:, 1] = -spatial_weight_times_interaction
         return X_new, K_new
 
-    def get_kernel_terms(self, spatial_weight_times_ytm1, spatial_weight_times_interaction, ytm1,
-                         action_infection_interaction):
-        if self.kernel == 'network':
-            K_network = np.column_stack((spatial_weight_times_ytm1, spatial_weight_times_interaction))
-            global_spatial_weight_times_ytm1 = np.dot(self.global_spatial_weight_matrix, ytm1)
-            global_spatial_weight_times_interaction = \
-                np.dot(self.global_spatial_weight_matrix, action_infection_interaction)
-            K_global = np.column_stack((global_spatial_weight_times_ytm1, global_spatial_weight_times_interaction))
-            K = K_network
-        else:
-            K_global = np.column_stack((spatial_weight_times_ytm1, spatial_weight_times_interaction))
-            network_spatial_weight_times_ytm1 = np.dot(self.network_spatial_weight_matrix, ytm1)
-            network_spatial_weight_times_interaction = \
-                np.dot(self.network_spatial_weight_matrix, action_infection_interaction)
-            K_network = np.column_stack((network_spatial_weight_times_ytm1, network_spatial_weight_times_interaction))
-            K = K_global
+    def get_kernel_terms(self, A, Y):
+        K = self.get_K(A, Y, kernel='true')
+        K_global = self.get_K(A, Y, kernel='global')
+        K_network = self.get_K(A, Y, kernel='network')
         return K_global, K_network, K
 
     def get_K_history(self, kernel):
@@ -210,42 +198,43 @@ class PoissonDisease(object):
         elif kernel == 'global':
             return self.global_spatial_weight_matrix
 
-    def get_X_and_K(self, A, Y, t, kernel='true'):
-        z, _ = self.get_endemic_effect(t)
+    def get_X(self, A, Y, t):
+        _, z = self.get_endemic_effect(t)
         action_infection_interaction = np.multiply(A, Y)
         X = np.column_stack((np.ones(self.L), z, Y, -action_infection_interaction))
+        return X
+
+    def get_K(self, A, Y, kernel='true'):
+        action_infection_interaction = np.multiply(A, Y)
         spatial_weight_matrix = self.get_spatial_weight_matrix(kernel=kernel)
         spatial_weight_times_y = np.dot(spatial_weight_matrix, Y)
         spatial_weight_times_interaction = np.dot(spatial_weight_matrix, action_infection_interaction)
         K = np.column_stack((spatial_weight_times_y, spatial_weight_times_interaction))
-        return X, K
+        return K
 
     def draw_next_state(self, A, kernel='true'):
+        # ToDo: this can be optimized since the only thing that changes between draws is Ytp
         mean_counts_ = self.mean_counts(self.Y, A)
         Ytp = np.random.poisson(mean_counts_)
-        z, _ = self.get_endemic_effect(self.t+1)
-        action_infection_interaction = np.multiply(A, Ytp)
-        Xtp = np.column_stack((np.ones(self.L), z, Ytp, -action_infection_interaction))
-        spatial_weight_matrix = self.get_spatial_weight_matrix(kernel=kernel)
-        spatial_weight_times_y = np.dot(spatial_weight_matrix, Ytp)
-        spatial_weight_times_interaction = np.dot(spatial_weight_matrix, action_infection_interaction)
-        Ktp = np.column_stack((spatial_weight_times_y, spatial_weight_times_interaction))
+        Xtp = self.get_X(A, Ytp, self.t+1)
+        Ktp = self.get_K(A, Ytp, kernel=kernel)
         return Xtp, Ktp
 
     def step(self, A, propensities=None):
-        mean_counts_, z, action_infection_interaction, spatial_weight_times_ytm1, \
-            spatial_weight_times_interaction = self.mean_counts(self.Y, A)
-
-        X = np.column_stack((np.ones(self.L), z, self.Y, -action_infection_interaction))
+        mean_counts_ = self.mean_counts(self.Y, A)
+        X = self.get_X(A, self.Y, self.t)
         Y = np.random.poisson(mean_counts_)
-        K_global, K_network, K = self.get_kernel_terms(spatial_weight_times_ytm1, spatial_weight_times_interaction,
-                                                       self.Y, action_infection_interaction)
+        K_global, K_network, K = self.get_kernel_terms(A, self.Y)
+
+        # Update current states
         self.X = X
         self.Y = Y
         self.K = K
         self.K_global = K_global
         self.K_network = K_network
         self.t += 1
+
+        # Update histories
         self.K_network_list.append(K_network)
         self.K_global_list.append(K_global)
         self.K_list.append(K)
