@@ -93,8 +93,8 @@ def epsilon_greedy_propensity_score_from_A(A, spatial_weight_matrix, epsilon, pr
     return propensities
 
 
-def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
-                             backup_regressor=RandomForestRegressor, num_mc_reps=30, **kwargs):
+def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
+                             num_mc_reps=10, **kwargs):
 
     model_parameter = model_parameter_from_env(env)
 
@@ -110,37 +110,25 @@ def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optim
     # Get backed-up q values using myopic model-based
     X_current = env.X
     K_current = env.get_current_K(kernel='true')
-    r = np.zeros(0)
-    rp1 = np.zeros(0)
-    A_dummy = np.zeros(env.L)
-    A_dummy[:budget] = 1
-    X0_list = []
-    for _ in range(num_mc_reps):
-        np.random.shuffle(A_dummy)
-        X_at_A_dummy, K_at_A_dummy = env.get_X_at_A(X_current, K_current, A_dummy, kernel=None)
-        X0_list.append(np.column_stack((X_at_A_dummy, K_at_A_dummy)))
-        Xtp, Ktp = env.draw_next_state(A_dummy)
-        r_rep = Xtp[:, 3]
-        r = np.hstack((r, r_rep))
-
-        # Next step reward
-        q_at_Xtp1 = partial(q0, X_=Xtp, K_=Ktp)
-        A_opt, _ = q_optimizer(q_at_Xtp1, env.L, budget)
-        rp1_rep = q_at_Xtp1(A_opt)
-        rp1 = np.hstack((rp1, rp1_rep))
-
-    # Distill
-    X0 = np.vstack(X0_list)
-    target = r + discount_factor * rp1
-    model1 = backup_regressor()
-    model1.fit(X0, target)
 
     # Query policy at current state
     def q1(A_):
-        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_)
-        X_at_A = np.column_stack((X_at_A, K_at_A))
-        q_ = model1.predict(X_at_A)
-        return q_
+        q1_ = np.zeros(env.L)
+        X0_list = []
+        for _ in range(num_mc_reps):
+            X_at_A_dummy, K_at_A_dummy = env.get_X_at_A(X_current, K_current, A_, kernel=None)
+            X0_list.append(np.column_stack((X_at_A_dummy, K_at_A_dummy)))
+            Xtp, Ktp = env.draw_next_state(A_)
+            r_rep = Xtp[:, 3]
+
+            # Next step reward
+            q_at_Xtp1 = partial(q0, X_=Xtp, K_=Ktp)
+            A_opt, _ = q_optimizer(q_at_Xtp1, env.L, budget)
+            rp1_rep = q_at_Xtp1(A_opt)
+
+            q1_rep = r_rep + discount_factor * rp1_rep
+            q1_ += q1_rep / num_mc_reps
+        return q1_
 
     A, _ = q_optimizer(q1, env.L, budget)
     return {'A': A}
