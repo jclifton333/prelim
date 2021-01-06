@@ -18,7 +18,7 @@ def expected_utility_at_param(param, rollout, model_parameters, n_rollout_per_it
     return expected_utility
 
 
-def random_policy_optimizer(rollout, model_parameters, policy_parameter_size=8, n_rollout_per_it=30, n_rep=100):
+def random_policy_optimizer(rollout, model_parameters, policy_parameter_size=3, n_rollout_per_it=30, n_rep=100):
     params = np.random.uniform(low=0., high=5., size=(n_rep, policy_parameter_size))
     scores = np.zeros(n_rep)
     objective = partial(expected_utility_at_param, rollout=rollout, model_parameters=model_parameters,
