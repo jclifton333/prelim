@@ -6,11 +6,12 @@ from scipy.stats import norm
 from .policy_search import mean_counts_from_model_parameter, model_parameter_from_env
 from .model_estimation import fit_model
 import prelim.optim.optim as optim
-import pdb
 
 
 def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
                              regressor=Ridge, kernel='network'):
+
+    # Estimate mean local infection count given current local features
     X = np.vstack(env.X_list)
     K_list = env.get_K_history(kernel)
     K = np.vstack(K_list)
@@ -19,45 +20,52 @@ def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optim
     model = regressor()
     model.fit(X, Y)
 
+    # Predict conditional rewards at current state, different actions A_
     X_current = env.X
     K_current = env.get_current_K(kernel)
 
     def q(A_):
-        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel=kernel)
+        X_at_A, K_at_A = env.get_features_at_action(X_current, K_current, A_, kernel=kernel)
         X_at_A = np.column_stack((X_at_A, K_at_A))
         q_ = model.predict(X_at_A)
         return q_
 
+    # Optimize estimated conditional reward
     A, q_best = q_optimizer(q, env.L, budget)
     return {'A': A}
 
 
 def myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
                               kernel='network'):
+
+    # Evaluate estimated infection model at current state and different actions A_
     model_parameter_estimate = fit_model(env)
     X_current = env.X
     K_current = env.get_current_K(kernel)
 
     def q(A_):
-        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel=kernel)
+        X_at_A, K_at_A = env.get_features_at_action(X_current, K_current, A_, kernel=kernel)
         q_ = mean_counts_from_model_parameter(model_parameter_estimate, X_at_A, K_at_A)
         return q_
 
+    # Optimize estimated model-based conditional reward
     A, q_best = q_optimizer(q, env.L, budget)
     return {'A': A}
 
 
 def oracle_myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer):
 
+    # Evaluate true infection model at current state and different actions A_
     model_parameter = model_parameter_from_env(env)
     X_current = env.X
     K_current = env.get_current_K(kernel='true')
 
     def q(A_):
-        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_, kernel='true')
+        X_at_A, K_at_A = env.get_features_at_action(X_current, K_current, A_, kernel='true')
         q_ = mean_counts_from_model_parameter(model_parameter, X_at_A, K_at_A)
         return q_
 
+    # Optimize expected reward
     A, q_best = q_optimizer(q, env.L, budget)
     return {'A': A}
 
@@ -80,19 +88,6 @@ def greedy_model_free_policy(env, budget, time_horizon, discount_factor, regress
     return {'A': A}
 
 
-def epsilon_greedy_propensity_score_from_A(A, spatial_weight_matrix, epsilon, prob_random_action,
-                                           spillover_propensity_means, spillover_propensity_variances):
-    A_spillover = np.dot(spatial_weight_matrix, A)
-    A_spillover_propensities = np.array([norm.pdf(a, loc=m, scale=s)
-                                         for a, m, s in zip(A_spillover,
-                                                            spillover_propensity_means,
-                                                            spillover_propensity_variances)]) * epsilon
-    A_propensities = epsilon * (A * prob_random_action + (1 - A) * (1 - prob_random_action)) + \
-                     (1 - epsilon) * A
-    propensities = np.multiply(A_propensities, A_spillover_propensities)
-    return propensities
-
-
 def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
                              num_mc_reps=10, **kwargs):
 
@@ -100,7 +95,7 @@ def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optim
 
     def q0(A_, X_, K_):
         if A_ is not None:
-            X_at_A, K_at_A = env.get_X_at_A(X_, K_, A_, kernel=None)
+            X_at_A, K_at_A = env.get_features_at_action(X_, K_, A_, kernel=None)
         else:
             X_at_A = X_
             K_at_A = K_
@@ -115,8 +110,10 @@ def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optim
     def q1(A_):
         q1_ = np.zeros(env.L)
         X0_list = []
+
+        # Monte Carlo estimate of max_A' E[ q_0(Stp, A') | X_current, A_]
         for _ in range(num_mc_reps):
-            X_at_A_dummy, K_at_A_dummy = env.get_X_at_A(X_current, K_current, A_, kernel=None)
+            X_at_A_dummy, K_at_A_dummy = env.get_features_at_action(X_current, K_current, A_, kernel=None)
             X0_list.append(np.column_stack((X_at_A_dummy, K_at_A_dummy)))
             Xtp, Ktp = env.draw_next_state(A_)
             r_rep = Xtp[:, 3]
@@ -148,7 +145,7 @@ def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optim
     model0.fit(X, Y)
 
     def q0(A_, X_, K_):
-        X_at_A, K_at_A = env.get_X_at_A(X_, K_, A_, kernel=kernel)
+        X_at_A, K_at_A = env.get_features_at_action(X_, K_, A_, kernel=kernel)
         X_at_A = np.column_stack((X_at_A, K_at_A))
         q_ = model0.predict(X_at_A)
         return q_
@@ -158,7 +155,7 @@ def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optim
     for X_, K_ in zip(env.X_list[1:], K_list[1:]):
         q_at_X = partial(q0, X_=X_, K_=K_)
         A_best, _ = q_optimizer(q_at_X, env.L, budget)
-        X_at_A_best, K_at_A_best = env.get_X_at_A(X_, K_, A_best)
+        X_at_A_best, K_at_A_best = env.get_features_at_action(X_, K_, A_best)
         X_at_A_best = np.column_stack((X_at_A_best, K_at_A_best))
         v = model0.predict(X_at_A_best)
         v1 = np.hstack((v1, v))
@@ -175,7 +172,7 @@ def one_step_fitted_q_policy(env, budget, time_horizon, discount_factor, q_optim
     K_current = env.get_current_K(kernel)
 
     def q1(A_):
-        X_at_A, K_at_A = env.get_X_at_A(X_current, K_current, A_)
+        X_at_A, K_at_A = env.get_features_at_action(X_current, K_current, A_)
         X_at_A = np.column_stack((X_at_A, K_at_A))
         q_ = model1.predict(X_at_A)
         return q_

@@ -1,24 +1,30 @@
 import numpy as np
 from copy import copy
-from .fit_relaxation import fit_lp
-from .relaxation import lp_max
+from .linear_relaxation import lp_max, fit_lp
 from bayes_opt import BayesianOptimization
 import pdb
 from functools import partial
 
 
-def expected_utility_at_param(param, rollout, model_parameters, n_rollout_per_it):
+def expected_utility_at_param(policy_parameters, rollout, model_parameters, n_rollout_per_it):
+    """
+    Get Monte Carlo estimate of expected utility of policy with policy_parameters under model with parameter
+    model_parameters.
+    """
     expected_utility = 0.
     for it in range(n_rollout_per_it):
         if isinstance(model_parameters, list):
-            utility = rollout(param, model_parameters[it])
+            utility = rollout(policy_parameters, model_parameters[it])
         else:
-            utility = rollout(param, model_parameters)
+            utility = rollout(policy_parameters, model_parameters)
         expected_utility += utility / n_rollout_per_it
     return expected_utility
 
 
 def random_policy_optimizer(rollout, model_parameters, policy_parameter_size=3, n_rollout_per_it=30, n_rep=100):
+    """
+    Generate policy parameters uniformly at random and take the one with largest Monte Carlo-estimated value.
+    """
     params = np.random.uniform(low=0., high=5., size=(n_rep, policy_parameter_size))
     scores = np.zeros(n_rep)
     objective = partial(expected_utility_at_param, rollout=rollout, model_parameters=model_parameters,
@@ -33,7 +39,6 @@ def random_policy_optimizer(rollout, model_parameters, policy_parameter_size=3, 
 
 
 def random_hill_climb_policy_optimizer(rollout, model_parameters, n_it=20, n_rollout_per_it=10, num_param=2):
-
     best_param = np.ones(num_param)
 
     # Get total utility at initial iterate
@@ -103,6 +108,9 @@ def random_q_optimizer(q, L, budget, n_it=1000):
 
 
 def lp_q_optimizer(q, L, budget):
+    """
+    Fit a linear approximation to q function at current state and solve with binary linear programming.
+    """
     coef, intercept = fit_lp(q, L, budget)
     A_best = lp_max(coef, intercept, budget)
     q_best = q(A_best)
