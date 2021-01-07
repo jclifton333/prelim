@@ -52,10 +52,9 @@ def fit_lp(q, L, budget, samples=100):
 
     # Evaluate
     coef = np.zeros(L)
-    intercept = 0.
     for l in range(L):
         q_l = q_samples[:, l]
         coef_l = fit_linear_approximation_at_location(q_l, A_samples)
         coef += coef_l
 
-    return coef, intercept
+    return coef

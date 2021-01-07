@@ -22,17 +22,13 @@ def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_f
     # Burn in
     for t in range(BURN_IN):
         action_info = BURN_IN_POLICY(env, budget, time_horizon-t, discount_factor)
-        env.step(action_info['A'], propensities=action_info['propensities'])
+        env.step(action_info['A'])
 
     # Deploy policy
     for t in range(time_horizon):
         total_utility += discount_factor**t * env.Y.sum()
         action_info = policy(env, budget, time_horizon-t, discount_factor, kernel=specified_kernel)
-        if 'propensities' in action_info.keys():
-            propensities = action_info['propensities']
-        else:
-            propensities = None
-        env.step(action_info['A'], propensities=propensities)
+        env.step(action_info['A'])
     return total_utility
 
 
