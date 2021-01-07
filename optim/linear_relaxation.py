@@ -4,7 +4,7 @@ import docplex.mp.model as dcpm
 from sklearn.linear_model import LinearRegression
 
 
-def lp_max(coef, intercept, budget):
+def lp_max(coef, budget):
     """
     Solve min_a coef.A + intercept, subject to sum A = budget.
     :return:
@@ -12,7 +12,7 @@ def lp_max(coef, intercept, budget):
     L = len(coef)
     model = dcpm.Model(name="lp_max")
     vars = {i: model.binary_var(name="trt_{}".format(i)) for i in range(L)}
-    obj = model.sum(vars[i]*float(coef[i]) for i in range(L)) + float(intercept)
+    obj = model.sum(vars[i]*float(coef[i]) for i in range(L))
     model.add_constraint(model.sum(vars[i] for i in range(L)) == budget)
     model.minimize(obj)
     sol = model.solve(url=None, key=None)
@@ -31,8 +31,7 @@ def fit_linear_approximation_at_location(q_l, A_samples):
     lm = LinearRegression()
     lm.fit(A_samples, q_l)
     coef = lm.coef_
-    intercept = lm.intercept_
-    return coef, intercept
+    return coef
 
 
 def fit_lp(q, L, budget, samples=100):
@@ -56,8 +55,7 @@ def fit_lp(q, L, budget, samples=100):
     intercept = 0.
     for l in range(L):
         q_l = q_samples[:, l]
-        coef_l, intercept_l = fit_linear_approximation_at_location(q_l, A_samples)
+        coef_l = fit_linear_approximation_at_location(q_l, A_samples)
         coef += coef_l
-        intercept += intercept_l
 
     return coef, intercept

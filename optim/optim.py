@@ -111,8 +111,8 @@ def lp_q_optimizer(q, L, budget):
     """
     Fit a linear approximation to q function at current state and solve with binary linear programming.
     """
-    coef, intercept = fit_lp(q, L, budget)
-    A_best = lp_max(coef, intercept, budget)
+    coef = fit_lp(q, L, budget)
+    A_best = lp_max(coef, budget)
     q_best = q(A_best)
     return A_best, q_best
 
