@@ -81,8 +81,8 @@ class PoissonDisease(object):
                     self.global_spatial_weight_matrix[i, j] = global_weight_ij
                     self.global_spatial_weight_matrix[j, i] = global_weight_ij
 
-            self.network_spatial_weight_matrix /= self.network_spatial_weight_matrix.sum(axis=1)
-            self.global_spatial_weight_matrix /= self.global_spatial_weight_matrix.sum(axis=1)
+            # self.network_spatial_weight_matrix /= self.network_spatial_weight_matrix.sum(axis=1)
+            # self.global_spatial_weight_matrix /= self.global_spatial_weight_matrix.sum(axis=1)
         else:
             self.set_spatial_weight_matrices(spatial_weight_matrices)
 

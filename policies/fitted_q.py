@@ -53,15 +53,16 @@ def myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_opti
     return {'A': A}
 
 
-def oracle_myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer):
+def oracle_myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
+                                     kernel='true'):
 
     # Evaluate true infection model at current state and different actions A_
     model_parameter = model_parameter_from_env(env)
     X_current = env.X
-    K_current = env.get_current_K(kernel='true')
+    K_current = env.get_current_K(kernel=kernel)
 
     def q(A_):
-        X_at_A, K_at_A = env.get_features_at_action(X_current, K_current, A_, kernel='true')
+        X_at_A, K_at_A = env.get_features_at_action(X_current, K_current, A_, kernel=kernel)
         q_ = mean_counts_from_model_parameter(model_parameter, X_at_A, K_at_A)
         return q_
 
