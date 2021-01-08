@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import argparse
 import numpy as np
 from environment import PoissonDisease
@@ -82,9 +83,8 @@ if __name__ == "__main__":
         fname = f'{prefix}_{suffix}.yml'
         with open(fname, 'w') as outfile:
             yaml.dump(results, outfile)
+        print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility} se {standard_error}')
     else:
         expected_total_utility = run_replicate_partial(1)
-
-    # Display results
-    print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
+        print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
 

@@ -1,3 +1,4 @@
+import pdb
 import numpy as np
 from functools import partial
 from sklearn.ensemble import RandomForestRegressor
@@ -53,7 +54,7 @@ def myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_opti
     return {'A': A}
 
 
-def oracle_myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
+def oracle_myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
                                      kernel='true'):
 
     # Evaluate true infection model at current state and different actions A_

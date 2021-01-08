@@ -21,7 +21,7 @@ class PoissonDisease(object):
     or a global kernel, 1 / (1 + d(\ell, \ell') / bandwidth) ).
     """
 
-    def __init__(self, L, lambda_a=0.2, phi_a=0.1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
+    def __init__(self, L, lambda_a=0.2, phi_a=1, alpha_nu=-3.12, alpha_lambda=-0.67, alpha_phi=-1.01,
                  beta_nu=np.array([1.91, 2.69]), kernel_bandwidth=1, Y_initial=None,
                  t_initial=None, kernel='network', spatial_weight_matrices=None):
         """
@@ -77,14 +77,16 @@ class PoissonDisease(object):
 
                     # Get global kernel
                     # global_weight_ij = np.exp(-d_ij / kernel_bandwidth)
-                    global_weight_ij = 1 / (1 + d_ij/kernel_bandwidth)
+                    # global_weight_ij = 1 / (1 + d_ij/kernel_bandwidth)
+                    global_weight_ij = d_ij < 5
                     self.global_spatial_weight_matrix[i, j] = global_weight_ij
                     self.global_spatial_weight_matrix[j, i] = global_weight_ij
 
             # self.network_spatial_weight_matrix /= self.network_spatial_weight_matrix.sum(axis=1)
             # self.global_spatial_weight_matrix /= self.global_spatial_weight_matrix.sum(axis=1)
-            self.network_spatial_weight_matrix /= L
-            self.global_spatial_weight_matrix /= L
+            raw_network_matrix = copy.copy(self.network_spatial_weight_matrix)
+            self.network_spatial_weight_matrix /= raw_network_matrix.sum(axis=1)
+            self.global_spatial_weight_matrix /= raw_network_matrix.sum(axis=1)
         else:
             self.set_spatial_weight_matrices(spatial_weight_matrices)
 
@@ -147,14 +149,14 @@ class PoissonDisease(object):
         self.K_list = []
         self.propensities_list = []
 
-    def get_features_at_action(self, X, K, A, kernel=None):
+    def get_features_at_action(self, X, K, A, kernel='true'):
         """
         Return feature arrays X_new, K_new by replacing action-dependent terms in those arrays using the actions in A.
         """
         Y = X[:, 3]
         action_infection_interaction = Y * A
 
-        if kernel is None:
+        if kernel == 'true' or kernel is None:
             spatial_weight_times_interaction = np.dot(self.spatial_weight_matrix, action_infection_interaction)
         elif kernel == 'network':
             spatial_weight_times_interaction = np.dot(self.network_spatial_weight_matrix, action_infection_interaction)
