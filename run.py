@@ -26,8 +26,8 @@ def bootstrap(data, reps=1000):
         resampled_data = np.random.choice(data, size=n, replace=True)
         resampled_mean = np.mean(resampled_data)
     se = np.std(resampled_means)
-    q_upper = np.quantile(data, 0.975)
-    q_lower = np.quantile(data, 0.025)
+    q_upper = np.percentile(data, 0.975)
+    q_lower = np.percentile(data, 0.025)
     lower = np.round(2*mean_ - q_upper, 2)
     upper = np.round(2*mean_ + q_lower, 2)
     interval = (lower, upper)
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         fname = f'{prefix}_{suffix}.yml'
         with open(fname, 'w') as outfile:
             yaml.dump(results, outfile)
-        print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility} interval {interval})
+        print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility} interval {interval}')
     else:
         expected_total_utility = run_replicate_partial(1)
         print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
