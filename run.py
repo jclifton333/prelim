@@ -15,18 +15,23 @@ BURN_IN_POLICY = policy_factory('random')
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def bootstrap_se(data, reps=1000):
+def bootstrap(data, reps=1000):
     """
     Helper for computing standard errors of estimated expected values.
     """
     n = len(data)
     resampled_means = []
-    for _ in range(resp):
+    mean_ = np.mean(data)
+    for _ in range(reps):
         resampled_data = np.random.choice(data, size=n, replace=True)
         resampled_mean = np.mean(resampled_data)
-        resampled_means.append(resampled_mean)
     se = np.std(resampled_means)
-    return se
+    q_upper = np.quantile(data, 0.975)
+    q_lower = np.quantile(data, 0.025)
+    lower = np.round(2*mean_ - q_upper, 2)
+    upper = np.round(2*mean_ + q_lower, 2)
+    interval = (lower, upper)
+    return se, interval
 
 
 def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_factor, specified_kernel):
@@ -86,7 +91,8 @@ if __name__ == "__main__":
             all_results += batch_results
         pool.close()
         expected_total_utility = np.mean(all_results)
-        standard_error = float(bootstrap_se(all_results))
+        standard_error, interval = bootstrap(all_results)
+        standard_error = float(standard_error)
 
         # Save results
         results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
@@ -98,7 +104,7 @@ if __name__ == "__main__":
         fname = f'{prefix}_{suffix}.yml'
         with open(fname, 'w') as outfile:
             yaml.dump(results, outfile)
-        print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility} se {standard_error}')
+        print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility} interval {interval})
     else:
         expected_total_utility = run_replicate_partial(1)
         print(f'L: {L} policy name: {policy_name} expected value {expected_total_utility}')
