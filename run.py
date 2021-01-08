@@ -14,6 +14,21 @@ BURN_IN = 5
 BURN_IN_POLICY = policy_factory('random')
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+def bootstrap_se(data, reps=1000):
+    """
+    Helper for computing standard errors of estimated expected values.
+    """
+    n = len(data)
+    resampled_means = []
+    for _ in range(resp):
+        resampled_data = np.random.choice(data, size=n, replace=True)
+        resampled_mean = np.mean(resampled_data)
+        resampled_means.append(resampled_mean)
+    se = np.std(resampled_means)
+    return se
+
+
 def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_factor, specified_kernel):
     np.random.seed(replicate_index)
 
@@ -71,7 +86,7 @@ if __name__ == "__main__":
             all_results += batch_results
         pool.close()
         expected_total_utility = np.mean(all_results)
-        standard_error = float(np.std(all_results) / np.sqrt(num_replicates))
+        standard_error = float(bootstrap_se(all_results))
 
         # Save results
         results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
