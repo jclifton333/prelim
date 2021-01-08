@@ -78,7 +78,7 @@ class PoissonDisease(object):
                     # Get global kernel
                     # global_weight_ij = np.exp(-d_ij / kernel_bandwidth)
                     # global_weight_ij = 1 / (1 + d_ij/kernel_bandwidth)
-                    global_weight_ij = d_ij < 5
+                    global_weight_ij = d_ij < 1
                     self.global_spatial_weight_matrix[i, j] = global_weight_ij
                     self.global_spatial_weight_matrix[j, i] = global_weight_ij
 
