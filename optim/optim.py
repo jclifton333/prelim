@@ -12,12 +12,15 @@ def expected_utility_at_param(policy_parameters, rollout, model_parameters, n_ro
     model_parameters.
     """
     expected_utility = 0.
-    for it in range(n_rollout_per_it):
-        if isinstance(model_parameters, list):
+    if isinstance(model_parameters, list):
+        for it in range(len(model_parameters)):
             utility = rollout(policy_parameters, model_parameters[it])
-        else:
+            expected_utility += utility / len(model_parameters)
+    else:
+        for it in range(n_rollout_per_it):
             utility = rollout(policy_parameters, model_parameters)
-        expected_utility += utility / n_rollout_per_it
+            expected_utility += utility / n_rollout_per_it
+
     return expected_utility
 
 

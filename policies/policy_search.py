@@ -112,8 +112,8 @@ def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, 
 def policy_search_policy(env, budget, time_horizon, discount_factor,
                          policy_optimizer=optim.random_policy_optimizer, kernel='network'):
     model_parameter_estimate = fit_model(env, kernel=kernel, perturb=False)
-    policy_parameter_estimate = policy_search(env, budget, time_horizon, discount_factor, policy_optimizer,
-                                              oracle=False, kernel=kernel)
+    policy_parameter_estimate, optimal_value_estimate = \
+        policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, oracle=False, kernel=kernel)
     K = env.get_current_K(kernel)
     A = priority_score_policy(policy_parameter_estimate, model_parameter_estimate, budget, env.X, K)
     return {'A': A}
