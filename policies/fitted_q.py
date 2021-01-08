@@ -10,7 +10,7 @@ import prelim.optim.optim as optim
 
 
 def myopic_model_free_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
-                             regressor=Ridge, kernel='network'):
+                             regressor=RandomForestRegressor, kernel='network'):
 
     # Estimate mean local infection count given current local features
     X = np.vstack(env.X_list)
@@ -54,7 +54,7 @@ def myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_opti
     return {'A': A}
 
 
-def oracle_myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
+def oracle_myopic_model_based_policy(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
                                      kernel='true'):
 
     # Evaluate true infection model at current state and different actions A_
@@ -90,7 +90,7 @@ def greedy_model_free_policy(env, budget, time_horizon, discount_factor, regress
     return {'A': A}
 
 
-def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optimizer=optim.random_q_optimizer,
+def oracle_one_step_fitted_q(env, budget, time_horizon, discount_factor, q_optimizer=optim.lp_q_optimizer,
                              num_mc_reps=10, **kwargs):
 
     model_parameter = model_parameter_from_env(env)
