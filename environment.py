@@ -79,15 +79,15 @@ class PoissonDisease(object):
 
     def generate_spatial_weights(self):
         root_L = np.sqrt(self.L)
-        coordinates = np.random.uniform(low=0, high=root_L, size=L)
+        coordinates = np.random.uniform(low=0, high=root_L, size=self.L)
 
         # Construct spatial weight matrices
         if self.default_spatial_weight_matrices is None:
-            self.network_spatial_weight_matrix = np.zeros((L, L))
-            self.global_spatial_weight_matrix = np.zeros((L, L))
+            self.network_spatial_weight_matrix = np.zeros((self.L, self.L))
+            self.global_spatial_weight_matrix = np.zeros((self.L, self.L))
 
-            for i in range(L):
-                for j in range(i, L):
+            for i in range(self.L):
+                for j in range(i, self.L):
                     coord_i = coordinates[i]
                     coord_j = coordinates[j]
 
