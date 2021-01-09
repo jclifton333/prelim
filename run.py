@@ -34,7 +34,7 @@ def bootstrap(data, reps=1000):
 
 
 def run_replicate(replicate_index, env, budget, time_horizon, policy, discount_factor, specified_kernel):
-    np.random.seed(replicate_index)
+    np.random.seed(replicate_index*1000)
 
     total_utility = 0.
     env.reset()
@@ -96,7 +96,7 @@ if __name__ == "__main__":
         # Save results
         results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
                    'budget': budget, 'true_kernel': true_kernel, 'specified_kernel': specified_kernel,
-                   'global_kernel_bandwidth': global_kernel_bandwidth}
+                   'global_kernel_bandwidth': global_kernel_bandwidth, 'interval': interval}
         base_name = f'L={L}-{policy_name}-{specified_kernel}'
         prefix = os.path.join(THIS_DIR, 'results', base_name)
         suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
