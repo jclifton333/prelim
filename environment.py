@@ -60,7 +60,6 @@ class PoissonDisease(object):
         # Generate spatial weight matrices
         self.kernel = kernel
         self.kernel_bandwidth = kernel_bandwidth
-        self.generate_spatial_weights()
 
         self.Y_initial = Y_initial
         self.t_initial = t_initial
