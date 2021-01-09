@@ -49,6 +49,7 @@ class PoissonDisease(object):
         self.phi_a = phi_a
         self.beta_nu = beta_nu
         self.omega = 2 * np.pi / 52
+        self.default_spatial_weight_matrices = spatial_weight_matrices
 
         # lambda (autoregressive effect)
         self.lambda_ = np.exp(self.alpha_lambda)
@@ -56,45 +57,10 @@ class PoissonDisease(object):
         # phi (spatiotemporal effect)
         self.phi = np.exp(self.alpha_phi)
 
-        # Generate coordinates uniformly on root_L x root_L square
-        root_L = np.sqrt(L)
-        coordinates = np.random.uniform(low=0, high=root_L, size=L)
-
-        # Construct spatial weight matrices
-        if spatial_weight_matrices is None:
-            self.network_spatial_weight_matrix = np.zeros((L, L))
-            self.global_spatial_weight_matrix = np.zeros((L, L))
-            for i in range(L):
-                for j in range(i, L):
-                    coord_i = coordinates[i]
-                    coord_j = coordinates[j]
-
-                    # Get network kernel
-                    d_ij = np.abs(coord_i - coord_j).sum()
-                    weight_ij = d_ij < 1
-                    self.network_spatial_weight_matrix[i, j] = weight_ij
-                    self.network_spatial_weight_matrix[j, i] = weight_ij
-
-                    # Get global kernel
-                    # global_weight_ij = np.exp(-d_ij / kernel_bandwidth)
-                    # global_weight_ij = 1 / (1 + d_ij/kernel_bandwidth)
-                    global_weight_ij = d_ij < kernel_bandwidth 
-                    self.global_spatial_weight_matrix[i, j] = global_weight_ij
-                    self.global_spatial_weight_matrix[j, i] = global_weight_ij
-
-            # self.network_spatial_weight_matrix /= self.network_spatial_weight_matrix.sum(axis=1)
-            # self.global_spatial_weight_matrix /= self.global_spatial_weight_matrix.sum(axis=1)
-            raw_network_matrix = copy.copy(self.network_spatial_weight_matrix)
-            self.network_spatial_weight_matrix /= raw_network_matrix.sum(axis=1)
-            self.global_spatial_weight_matrix /= raw_network_matrix.sum(axis=1)
-        else:
-            self.set_spatial_weight_matrices(spatial_weight_matrices)
-
+        # Generate spatial weight matrices
         self.kernel = kernel
-        if kernel == 'network':
-            self.spatial_weight_matrix = self.network_spatial_weight_matrix
-        else:
-            self.spatial_weight_matrix = self.global_spatial_weight_matrix
+        self.kernel_bandwidth = kernel_bandwidth
+        self.generate_spatial_weights()
 
         self.Y_initial = Y_initial
         self.t_initial = t_initial
@@ -111,6 +77,46 @@ class PoissonDisease(object):
         self.K_global_list = []
         self.K_list = []
         self.propensities_list = []
+
+    def generate_spatial_weights(self):
+        root_L = np.sqrt(self.L)
+        coordinates = np.random.uniform(low=0, high=root_L, size=L)
+
+        # Construct spatial weight matrices
+        if self.default_spatial_weight_matrices is None:
+            self.network_spatial_weight_matrix = np.zeros((L, L))
+            self.global_spatial_weight_matrix = np.zeros((L, L))
+
+            for i in range(L):
+                for j in range(i, L):
+                    coord_i = coordinates[i]
+                    coord_j = coordinates[j]
+
+                    # Get network kernel
+                    d_ij = np.abs(coord_i - coord_j).sum()
+                    weight_ij = d_ij < 1
+                    self.network_spatial_weight_matrix[i, j] = weight_ij
+                    self.network_spatial_weight_matrix[j, i] = weight_ij
+
+                    # Get global kernel
+                    # global_weight_ij = np.exp(-d_ij / kernel_bandwidth)
+                    # global_weight_ij = 1 / (1 + d_ij/kernel_bandwidth)
+                    global_weight_ij = d_ij < self.kernel_bandwidth
+                    self.global_spatial_weight_matrix[i, j] = global_weight_ij
+                    self.global_spatial_weight_matrix[j, i] = global_weight_ij
+
+            # self.network_spatial_weight_matrix /= self.network_spatial_weight_matrix.sum(axis=1)
+            # self.global_spatial_weight_matrix /= self.global_spatial_weight_matrix.sum(axis=1)
+            raw_network_matrix = copy.copy(self.network_spatial_weight_matrix)
+            self.network_spatial_weight_matrix /= raw_network_matrix.sum(axis=1)
+            self.global_spatial_weight_matrix /= raw_network_matrix.sum(axis=1)
+        else:
+            self.set_spatial_weight_matrices(self.default_spatial_weight_matrices)
+
+        if self.kernel == 'network':
+            self.spatial_weight_matrix = self.network_spatial_weight_matrix
+        else:
+            self.spatial_weight_matrix = self.global_spatial_weight_matrix
 
     def set_spatial_weight_matrices(self, spatial_weight_matrices):
         self.network_spatial_weight_matrix = spatial_weight_matrices['network_spatial_weight_matrix']
@@ -138,6 +144,8 @@ class PoissonDisease(object):
             self.t = 1
         else:
             self.t = self.t_initial
+
+        self.generate_spatial_weights()
 
         self.K = None
         self.K_global = None
