@@ -24,13 +24,12 @@ def bootstrap(data, reps=1000):
     mean_ = np.mean(data)
     for _ in range(reps):
         resampled_data = np.random.choice(data, size=n, replace=True)
-        resampled_mean = np.mean(resampled_data)
+        resampled_mean = np.mean(resampled_data - mean_)
+        resampled_means.append(resampled_mean)
     se = np.std(resampled_means)
-    q_upper = np.percentile(data, 0.975)
-    q_lower = np.percentile(data, 0.025)
-    lower = np.round(2*mean_ - q_upper, 2)
-    upper = np.round(2*mean_ + q_lower, 2)
-    interval = (lower, upper)
+    q_upper = np.percentile(resampled_means, 97.5)
+    q_lower = np.percentile(resampled_means, 2.5)
+    interval = (q_lower + mean_, q_upper + mean_)
     return se, interval
 
 
