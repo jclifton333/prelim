@@ -29,7 +29,7 @@ def bootstrap(data, reps=1000):
     se = np.std(resampled_means)
     q_upper = np.percentile(resampled_means, 97.5)
     q_lower = np.percentile(resampled_means, 2.5)
-    interval = (q_lower + mean_, q_upper + mean_)
+    interval = (float(q_lower + mean_), float(q_upper + mean_))
     return se, interval
 
 
