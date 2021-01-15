@@ -1,8 +1,6 @@
-import pdb
 import numpy as np
 from scipy.optimize import minimize
 from functools import partial
-from prelim.environment import PoissonDisease
 import copy
 
 
@@ -36,11 +34,15 @@ def negative_log_likelihood(param_vec, Y_stacked, X_stacked, K_stacked, weights=
         sum_mean_counts_ = np.sum(mean_counts_)
     log_lik = np.dot(Y_stacked, log_counts) - sum_mean_counts_
     nll = -log_lik + penalty * l2
-    # nll = np.mean(np.abs(mean_counts_ - Y_stacked)) + penalty * l2
     return nll
 
 
 def fit_model(env, kernel='network', perturb=True):
+    """
+    Fit PoissonDisease model using penalized maximum likelihood estimation from observation history in env
+    and assuming features are constructed with specified kernel.
+    """
+
     initial_param = np.concatenate(([env.alpha_nu], np.log(env.beta_nu), [env.alpha_lambda], [np.log(env.lambda_a)],
                                     [env.alpha_phi], [np.log(env.phi_a)]))
     Y_stacked = np.hstack(env.Y_list)
@@ -60,15 +62,3 @@ def fit_model(env, kernel='network', perturb=True):
     estimate = result.x
     estimate = np.maximum(np.minimum(estimate, 3), -3)  # clamp estimate to sane range
     return estimate
-
-
-if __name__ == "__main__":
-    L = 50
-    T = 1000
-    env = PoissonDisease(L)
-    env.reset()
-    for _ in range(T):
-        env.step(np.random.binomial(1, 1, L))
-        print(env.Y.sum())
-    param_hat = fit_model(env)
-

@@ -1,5 +1,8 @@
 This repository implements the experiments described in my prelim Paper 2. 
 
+
+## Contents
+
 - `environment`: Contains the `PoissonDisease` class, which implements the generative model with which policies will  
 interact; 
 - `policies`: Contains scripts for
@@ -12,3 +15,9 @@ interact;
     - `optim`: Main functions for optimization; 
     - `linear_relaxation`: Fit and solve linear approximation to Q-function optimization problem;
 - `run`: Run experiments based on user-specified settings.  
+
+## Notes
+
+- The `network` and `global` kernels in this codebase correspond respectively to \kappa_1 and \kappa_\delta 
+(for user-specified \delta) in Paper 2.
+

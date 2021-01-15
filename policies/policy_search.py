@@ -1,7 +1,6 @@
 import sys
 sys.path.append('..')
 
-import pdb
 import numpy as np
 from scipy.special import expit
 from environment import PoissonDisease
@@ -16,7 +15,6 @@ def priority_scores(policy_parameter, model_parameter, X, K):
     Y = X[:, 3]
     spatial_weight_times_ytm1 = K[:, 0]
     priority_features = np.column_stack([mean_counts_, Y, spatial_weight_times_ytm1])
-    # priority_features = np.column_stack([mean_counts_, X, K])
     priority_score = expit(np.dot(priority_features, policy_parameter))
     return priority_score
 

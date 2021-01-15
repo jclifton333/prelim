@@ -4,6 +4,10 @@ from . import policy_search
 
 
 def policy_factory(policy_name):
+    """
+    Return policy specified by string.
+    """
+
     if policy_name == 'policy_search':
         return policy_search.policy_search_policy
     elif policy_name == 'random':

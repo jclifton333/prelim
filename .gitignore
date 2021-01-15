@@ -1,3 +1,5 @@
 *.yml
 *.pyc
 profile_output
+.idea
+*.xml
