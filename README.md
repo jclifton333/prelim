@@ -1,4 +1,6 @@
-This repository implements the experiments described in my prelim Paper 2. 
+This repository implements the experiments described in my prelim Paper 2. The generative model used 
+in the experiments is based on that of Held and Paul (2012), "Modeling seasonality in space-time infectious
+disease data".  
 
 
 ## Contents
@@ -20,4 +22,7 @@ interact;
 
 - The `network` and `global` kernels in this codebase correspond respectively to \kappa_1 and \kappa_\delta 
 (for user-specified \delta) in Paper 2.
-
+- The notation for the parameters of the generative model differs between Paper 2 and this code. In the
+paper, these are referred to as \beta = [\beta_0, ..., \beta_6]. In the code, they are referred to as 
+`model_parameters = [alpha_nu, beta_1, beta_2, lambda, lambda_a, phi, phi_a]`. This is based on 
+Held and Paul (2012)'s notation.

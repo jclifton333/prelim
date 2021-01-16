@@ -8,8 +8,6 @@ class PoissonDisease(object):
     Adapted from estimates in 'Modeling seasonality in space-time infectious disease surveillance',
     Meyer & Held 2014.
 
-    # ToDo: phi clashes with the notation in the writeup
-
     Infection counts at location \ell are distributed Poisson(\mu^\ell), with
         \mu^\ell(S_t, A_t) = \exp{ alpha_nu + beta_nu_1 * sin(omega*t)  + beta_nu_2 * cos(omega*t) }
                                 + lambda * Y^\ell_{t-1} + lambda_a * Y^\ell_{t-1} * A^\ell_t
