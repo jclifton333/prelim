@@ -16,7 +16,7 @@ interact;
 - `optim`: Code for optimizing Q-functions and policies  
     - `optim`: Main functions for optimization; 
     - `linear_relaxation`: Fit and solve linear approximation to Q-function optimization problem;
-- `run`: Run experiments based on user-specified settings.  
+- `run[.py,.sh]`: Run experiments based on user-specified settings.  
 
 ## Notes
 

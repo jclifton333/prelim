@@ -1,9 +1,7 @@
-import pdb
 import numpy as np
 from functools import partial
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge
-from scipy.stats import norm
 from .policy_search import mean_counts_from_model_parameter, model_parameter_from_env
 from .model_estimation import fit_model
 import prelim.optim.optim as optim

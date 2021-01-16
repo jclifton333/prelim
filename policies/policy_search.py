@@ -75,6 +75,10 @@ def env_from_model_parameter(model_parameter, Y_current, t_current, L, kernel, s
 
 
 def rollout(policy_parameter, model_parameter, env, budget, time_horizon, kernel, discount_factor=0.96, oracle=False):
+    """
+    Compute discounted return from a single Monte Carlo replicate, under policy with policy_parameter
+    and model with model_parameter.
+    """
     total_utility = 0.
     if oracle:
         rollout_env = copy.deepcopy(env)
@@ -95,10 +99,8 @@ def rollout(policy_parameter, model_parameter, env, budget, time_horizon, kernel
     return total_utility
 
 
-def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, kernel, oracle=False,
-                  num_mc_replicates=10):
+def policy_search(env, budget, time_horizon, discount_factor, policy_optimizer, kernel, oracle=False):
     if not oracle:
-        # model_parameters = [fit_model(env, perturb=True, kernel=kernel) for _ in range(num_mc_replicates)]
         model_parameters = fit_model(env, perturb=False, kernel=kernel)
     else:
         model_parameters = model_parameter_from_env(env)
@@ -127,23 +129,4 @@ def oracle_policy_search_policy(env, budget, time_horizon, discount_factor,
     A = priority_score_policy(policy_parameter_estimate, model_parameter, budget, env.X, K)
     return {'A': A}
 
-
-if __name__ == "__main__":
-    L = 50
-    time_horizon = 10
-    budget = 10
-    discount_factor = 0.96
-    policy_optimizer = optim.genetic_policy_optimizer
-
-    env = PoissonDisease(L=L)
-    env.reset()
-
-    A = np.zeros(L)
-    env.step(A)
-    total_reward = 0.
-    for t in range(time_horizon):
-        total_reward += discount_factor**t * env.Y.mean()
-        action_info = policy_search_policy(env, budget, time_horizon-t, discount_factor, policy_optimizer)
-        env.step(action_info['A'])
-        print(t, total_reward)
 
