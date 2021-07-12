@@ -2,7 +2,7 @@
 
 python3 run.py --policy_name='mbm' --L=50 --time_horizon=25 --budget=10 --num_replicates=1 \
                --true_kernel='global' --specified_kernel='global' --global_kernel_bandwidth=3.0 \
-               --replicate_batches=1 --policies_to_compare='greedy_model_free,myopic_model_free'
+               --replicate_batches=1 --policies_to_compare='greedy_model_free,greedy_model_based'
 
 # python3 run.py --policy_name='treat_all' --L=50 --time_horizon=25 --budget=10 --num_replicates=192 \
 #                --true_kernel='global' --specified_kernel='global' --global_kernel_bandwidth=3.0 \

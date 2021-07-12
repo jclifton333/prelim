@@ -46,6 +46,7 @@ def roll_out_policies(policies_to_compare, model_parameter_posterior, env, budge
       best_policy = policies_dict[k]
       best_score = score
 
+  print('got here')
   # Get action from best policy
   action_info = best_policy(env, budget, time_horizon, discount_factor, kernel=kernel)
   return action_info
