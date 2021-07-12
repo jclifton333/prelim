@@ -1,6 +1,7 @@
 import numpy as np
 from policy_factory import policy_factory
 import policy_search as ps
+from model_estimation import fit_model
 
 
 def roll_out_policies(policies_to_compare, model_parameter_posterior, env, budget, time_horizon, kernel,
@@ -38,3 +39,28 @@ def roll_out_policies(policies_to_compare, model_parameter_posterior, env, budge
   # Get action from best policy
   action_info = best_policy(env, budget, time_horizon, discount_factor, kernel=kernel)
   return action_info
+
+
+def mbm_policy(env, budget, time_horizon, discount_factor, kernel='network',
+               policies_to_compare=('greedy_model_free', 'myopic_model_free')):
+
+  def model_parameter_posterior():
+    sampled_model_parameters = fit_model(env, perturb=True, kernel=kernel)  # ToDo: check that this is the right kernel
+    return sampled_model_parameters
+
+  action_info = roll_out_policies(policies_to_compare, model_parameter_posterior, env, budget, time_horizon,
+                                  kernel, discount_factor=discount_factor)
+
+  return action_info
+
+
+def mbm_policy_factory(policies_to_compare):
+  def mbm_policy_partial(env, budget, time_horizon, discount_factor, kernel):
+    return mbm_policy(env, budget, time_horizon, discount_factor, kernel=kernel,
+                      policies_to_compare=policies_to_compare)
+  return mbm_policy_partial
+
+
+
+
+

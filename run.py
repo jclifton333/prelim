@@ -63,6 +63,7 @@ if __name__ == "__main__":
     parser.add_argument('--specified_kernel', type=str)
     parser.add_argument('--global_kernel_bandwidth', type=float)
     parser.add_argument('--replicate_batches', type=int)
+    parser.add_argument('--policies_to_compare', type=str, default='')
     args = parser.parse_args()
 
     L = args.L
@@ -70,7 +71,12 @@ if __name__ == "__main__":
     budget = args.budget
     discount_factor = 0.96
     policy_name = args.policy_name
-    policy = policy_factory(policy_name)
+    if policy_name == 'mbm':
+        policies_to_compare_str = args.policies_to_compare
+        policy_kwargs = {'policies_to_compare': (policy_name for policy_name in policies_to_compare_str.split(','))}
+    else:
+        policy_kwargs = {}
+    policy = policy_factory(policy_name, **policy_kwargs)
     num_replicates = args.num_replicates
     replicate_batches = args.replicate_batches
     true_kernel = args.true_kernel

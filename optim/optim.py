@@ -1,7 +1,7 @@
 import numpy as np
 from copy import copy
 from .linear_relaxation import lp_max, fit_lp
-from bayes_opt import BayesianOptimization
+# from bayes_opt import BayesianOptimization
 import pdb
 from functools import partial
 
