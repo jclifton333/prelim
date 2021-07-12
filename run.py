@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 from environment import PoissonDisease
 from policies.policy_factory import policy_factory
+from policies.mbm import mbm_policy
 import multiprocessing as mp
 from functools import partial
 import yaml
@@ -73,10 +74,15 @@ if __name__ == "__main__":
     policy_name = args.policy_name
     if policy_name == 'mbm':
         policies_to_compare_str = args.policies_to_compare
-        policy_kwargs = {'policies_to_compare': (policy_name for policy_name in policies_to_compare_str.split(','))}
+        policies_to_compare = policies_to_compare_str.split(',')
+
+        def policy(env, budget, time_horizon, discount_factor, kernel):
+            return mbm_policy(env, budget, time_horizon, discount_factor, kernel=kernel,
+                              policies_to_compare=policies_to_compare)
     else:
         policy_kwargs = {}
-    policy = policy_factory(policy_name, **policy_kwargs)
+        policy = policy_factory(policy_name, **policy_kwargs)
+
     num_replicates = args.num_replicates
     replicate_batches = args.replicate_batches
     true_kernel = args.true_kernel

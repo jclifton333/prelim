@@ -1,7 +1,6 @@
 from . import baseline_policies
 from . import fitted_q
 from . import policy_search
-from . import mbm
 
 
 def policy_factory(policy_name, **kwargs):
@@ -35,6 +34,3 @@ def policy_factory(policy_name, **kwargs):
         return fitted_q.oracle_one_step_fitted_q
     elif policy_name == 'oracle_myopic_model_based':
         return fitted_q.oracle_myopic_model_based_policy
-    elif policy_name == 'mbm':
-        policies_to_compare = kwargs['policies_to_compare']
-        return mbm.mbm_policy_factory(policies_to_compare)
