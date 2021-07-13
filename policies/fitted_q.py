@@ -76,7 +76,7 @@ def greedy_model_free_policy(env, budget, time_horizon, discount_factor, regress
     K = np.vstack(K_list)
     X = np.column_stack((X, K))
     Y = np.hstack(env.Y_list)
-    model = regressor()
+    model = regressor(normalize=True)
     model.fit(X, Y)
 
     X_current = env.X

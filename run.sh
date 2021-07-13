@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-python3 run.py --policy_name='mbm' --L=50 --time_horizon=25 --budget=10 --num_replicates=1 \
+python3 run.py --policy_name='mbm' --L=50 --time_horizon=10 --budget=10 --num_replicates=1 \
                --true_kernel='global' --specified_kernel='global' --global_kernel_bandwidth=3.0 \
                --replicate_batches=1 --policies_to_compare='greedy_model_free,greedy_model_based'
 
