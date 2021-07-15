@@ -1,0 +1,9 @@
+numpy
+sklearn
+scipy
+numba
+docplex
+cplex
+pandas
+pyyaml
+matplotlib
