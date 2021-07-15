@@ -105,6 +105,9 @@ if __name__ == "__main__":
         standard_error, interval = bootstrap(all_results)
         standard_error = float(standard_error)
 
+        if policy_name == 'mbm':
+            policy_name += ('-' + policies_to_compare_str)
+
         # Save results
         results = {'policy': policy_name, 'L': L, 'score': float(expected_total_utility), 'se': standard_error,
                    'budget': budget, 'true_kernel': true_kernel, 'specified_kernel': specified_kernel,
