@@ -13,8 +13,8 @@ if __name__ == "__main__":
     parser.add_argument('--save', type=int, default=0)
     args = parser.parse_args()
 
-    date = args.date
-    date_lst = date.split(',')
+    dates = args.date
+    date_lst = dates.split(',')
     if args.bandwidth_filter is not None:
         bandwidth_filter = [float(b) for b in args.bandwidth_filter.split(',')]
     else:
@@ -32,8 +32,8 @@ if __name__ == "__main__":
             matches_date = False
             for date in date_lst:
                 if date in fname:
-                    matches_date = True
-                    break
+                   matches_date = True
+                   break
             if date is None or matches_date:
                 d = yaml.load(open(fname, 'rb'))
                 policy = d['policy']
@@ -74,5 +74,5 @@ if __name__ == "__main__":
     summary_df.sort_values(by=['L', 'policy', 'specified_kernel'], inplace=True)
     summary_df = summary_df[['L', 'policy', 'specified_kernel', 'bandwidth', 'score', 'lower', 'upper']]
     if args.save:
-        summary_df.to_csv(f'{date}.csv')
+        summary_df.to_csv(f'{dates}.csv')
     print(summary_df)
