@@ -25,6 +25,8 @@ if __name__ == "__main__":
 
   g = sns.FacetGrid(summary_to_plot, col='bandwidth', hue='correctly_specified')
   g.map_dataframe(errplot, 'policy', 'score', 'err')
+  g.add_legend()
+  # plt.legend(loc=1, title='correctly specified')
   plt.show()
   # Plot
   # sns.catplot(y='score', col='bandwidth', x='policy', kind='point', data=df)
