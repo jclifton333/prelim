@@ -10,9 +10,11 @@ if __name__ == "__main__":
     parser.add_argument('--date', type=str)
     parser.add_argument('--bandwidth_filter', type=str)
     parser.add_argument('--policy_filter', type=str)
+    parser.add_argument('--save', type=int, default=0)
     args = parser.parse_args()
 
     date = args.date
+    date_lst = date.split(',')
     if args.bandwidth_filter is not None:
         bandwidth_filter = [float(b) for b in args.bandwidth_filter.split(',')]
     else:
@@ -27,7 +29,12 @@ if __name__ == "__main__":
                     'bandwidth': []}
     for fname in os.listdir():
         if fname.endswith(".yml"):
-            if date is None or date in fname:
+            matches_date = False
+            for date in date_lst:
+                if date in fname:
+                    matches_date = True
+                    break
+            if date is None or matches_date:
                 d = yaml.load(open(fname, 'rb'))
                 policy = d['policy']
                 L = d['L']
@@ -66,4 +73,6 @@ if __name__ == "__main__":
     summary_df = pd.DataFrame.from_dict(summary_dict)
     summary_df.sort_values(by=['L', 'policy', 'specified_kernel'], inplace=True)
     summary_df = summary_df[['L', 'policy', 'specified_kernel', 'bandwidth', 'score', 'lower', 'upper']]
+    if args.save:
+        summary_df.to_csv(f'{date}.csv')
     print(summary_df)
